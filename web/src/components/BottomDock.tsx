@@ -1,4 +1,4 @@
-import { translateUI } from "../lib/language";
+import { formatUI, translateUI } from "../lib/language";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, Check, ListChecks, Server, TrafficCone } from "lucide-react";
 import { api } from "../api/client";
@@ -59,7 +59,7 @@ function EventsTab() {
     <div>
       <div className="row" style={{ padding: "6px 12px", gap: 4, position: "sticky", top: 0, background: "var(--bg-2)", zIndex: 1 }}>
         {Object.keys(GROUPS).map((g) => (
-          <button key={translateUI(g)} className={`chip${group === g ? " on" : ""}`} style={{ height: 22 }} onClick={() => setGroup(g)}>{translateUI(g)}</button>
+          <button key={g} className={`chip${group === g ? " on" : ""}`} style={{ height: 22 }} onClick={() => setGroup(g)}>{translateUI(g)}</button>
         ))}
       </div>
       {shown.length === 0 && <Empty>{translateUI("No events yet.")}</Empty>}
@@ -126,7 +126,7 @@ function TasksTab() {
             <td>{t.assigned_robot ? robots[t.assigned_robot]?.name ?? t.assigned_robot : "—"}</td>
             <td><TaskBadge status={t.status} /></td>
             <td><Bar value={t.progress} color={TASK_META[t.status].color} /></td>
-            <td className="muted ellipsis" style={{ maxWidth: 420 }}>{t.status_reason}</td>
+            <td className="muted ellipsis" style={{ maxWidth: 420 }}>{translateUI(t.status_reason)}</td>
           </tr>
         ))}
       </tbody>
@@ -152,7 +152,7 @@ function TrafficTab() {
         {conflicts.map((c) => (
           <div key={c.id} style={{ padding: "7px 12px", borderBottom: "1px solid var(--line)" }}>
             <div className="row" style={{ gap: 6 }}>
-              <span className="badge" style={vars({ "--c": "#fbbf24" })}>{c.kind.replace("_", "-")}</span>
+              <span className="badge" style={vars({ "--c": "#fbbf24" })}>{translateUI(c.kind.replace("_", "-"))}</span>
               <span style={{ fontWeight: 550 }}>{c.location_name}</span>
               <span className="faint" style={{ marginLeft: "auto" }}>{clock(c.detected_at)}</span>
             </div>
@@ -168,7 +168,7 @@ function TrafficTab() {
         {traffic.waits.length === 0 && <div className="faint" style={{ padding: "4px 12px 10px" }}>{translateUI("Nobody is waiting.")}</div>}
         {traffic.waits.map((w) => (
           <div key={w.robot_id} style={{ padding: "5px 12px", fontSize: 12.5 }}>
-            <b>{name(w.robot_id)}</b> <span className="muted">{w.reason}</span>
+            <b>{name(w.robot_id)}</b> <span className="muted">{translateUI(w.reason)}</span>
           </div>
         ))}
         <div className="section-title" style={{ padding: "10px 12px 4px" }}>{translateUI("Reservations held")}</div>
@@ -215,29 +215,29 @@ export function SystemTab() {
   if (err && !info) return <Empty>{err}</Empty>;
   if (!info) return <Empty>{translateUI("Loading…")}</Empty>;
   const rows: [string, boolean | null, string][] = [
-    ["Nayantra Core", info.core.ok, `v${info.core.version} · up ${dur(info.core.uptime_s)} · ${info.core.db}`],
-    ["Simulation", info.simulation.running, `${info.simulation.engine} · ${info.simulation.robots.length} robots · ${info.simulation.speed}×`],
+    ["Nayantra Core", info.core.ok, formatUI("v{version} · up {duration} · {db}", { version: info.core.version, duration: dur(info.core.uptime_s), db: info.core.db })],
+    ["Simulation", info.simulation.running, formatUI("{engine} · {count} robots · {speed}×", { engine: info.simulation.engine, count: info.simulation.robots.length, speed: info.simulation.speed })],
     ["ROS 2 runtime", info.ros2.ok, info.ros2.detail],
-    ["MCP server", info.mcp.ok, info.mcp.ok ? `${info.mcp.url} · ${info.mcp.latency_ms} ms` : `${info.mcp.url} unreachable`],
-    ["Agent (LLM)", info.agent.ok, info.agent.ok ? `${info.llm.provider}${info.llm.configured ? "" : " — no API key"} · ${info.agent.latency_ms} ms` : `${info.agent.url} unreachable`],
-    ["Realtime clients", true, `${info.websocket_clients} WebSocket subscriber(s)`],
+    ["MCP server", info.mcp.ok, info.mcp.ok ? `${info.mcp.url} · ${info.mcp.latency_ms} ms` : formatUI("{url} unreachable", { url: info.mcp.url })],
+    ["Agent (LLM)", info.agent.ok, info.agent.ok ? `${info.llm.provider}${info.llm.configured ? "" : translateUI(" — no API key")} · ${info.agent.latency_ms} ms` : formatUI("{url} unreachable", { url: info.agent.url })],
+    ["Realtime clients", true, formatUI("{count} WebSocket subscriber(s)", { count: info.websocket_clients })],
   ];
   return (
     <table className="tbl">
       <tbody>
         {rows.map(([k, ok, d]) => (
           <tr key={k}>
-            <td style={{ width: 170, fontWeight: 550 }}>{k}</td>
+            <td style={{ width: 170, fontWeight: 550 }}>{translateUI(k)}</td>
             <td style={{ width: 110 }}>
               <span className="badge" style={vars({ "--c": ok === null ? "#7c8ea0" : ok ? "#34d399" : "#f87171" })}>{ok === null ? translateUI("idle") : ok ? translateUI("ok") : translateUI("down")}</span>
             </td>
-            <td className="muted">{d}</td>
+            <td className="muted">{translateUI(d)}</td>
           </tr>
         ))}
         <tr>
           <td style={{ fontWeight: 550 }}>{translateUI("Registry")}</td>
           <td />
-          <td className="muted">{Object.entries(info.counts).map(([k, v]) => `${v} ${k.replace("_", " ")}`).join(" · ")}</td>
+          <td className="muted">{Object.entries(info.counts).map(([k, v]) => v + " " + translateUI(k.replace("_", " "))).join(" · ")}</td>
         </tr>
       </tbody>
     </table>

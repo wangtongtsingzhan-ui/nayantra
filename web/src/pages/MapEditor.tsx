@@ -1,4 +1,4 @@
-import { translateUI } from "../lib/language";
+import { formatUI, translateUI } from "../lib/language";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, Hexagon, ImageUp, MapPinPlus, MousePointer2, Plus, Spline, Trash2 } from "lucide-react";
 import { api } from "../api/client";
@@ -243,7 +243,7 @@ function Properties({ map, sel, onDelete, onSaved }: { map: MapDetail; sel: Edit
             <span>ID</span><span className="mono">{map.id}</span>
             <span>{translateUI("Bounds")}</span><span className="mono">{map.bounds.min_x}, {map.bounds.min_y} → {map.bounds.max_x}, {map.bounds.max_y} m</span>
             <span>{translateUI("Waypoints")}</span><span>{map.waypoints.length}</span>
-            <span>{translateUI("Lanes")}</span><span>{map.lanes.length} ({map.lanes.filter((l) => !l.bidirectional).length} {translateUI("one-way,")}{" "}{map.lanes.filter((l) => l.layer === "air").length} air)</span>
+            <span>{translateUI("Lanes")}</span><span>{map.lanes.length} ({map.lanes.filter((l) => !l.bidirectional).length} {translateUI("one-way,")}{" "}{map.lanes.filter((l) => l.layer === "air").length} {translateUI("air)")}</span>
             <span>{translateUI("Zones")}</span><span>{map.zones.length}</span>
             <span>{translateUI("Image")}</span><span>{map.image ? `${map.image.width_px}×${map.image.height_px} px @ ${map.image.resolution} m/px` : translateUI("none")}</span>
           </div>
@@ -373,7 +373,7 @@ function NewMapModal({ onClose }: { onClose: () => void }) {
     <Field label={label}><input className="input" type="number" value={f[k] as number} onChange={(e) => setF({ ...f, [k]: Number(e.target.value) })} /></Field>
   );
   return (
-    <Modal size="sm" title={translateUI("New map")} onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{err}</span><button className="btn primary" onClick={save}>{translateUI("Create map")}</button></>}>
+    <Modal size="sm" title={translateUI("New map")} onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{translateUI(err)}</span><button className="btn primary" onClick={save}>{translateUI("Create map")}</button></>}>
       <div className="col" style={{ gap: 10 }}>
         <Field label={translateUI("Name")}><input className="input" autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
         <Field label={translateUI("Description")}><input className="input" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
@@ -465,7 +465,7 @@ function UploadImage({ map, onClose }: { map: MapDetail; onClose: () => void }) 
     }
   };
   return (
-    <Modal size="sm" title={`Map image — ${map.name}`} onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{err}</span><button className="btn primary" onClick={save}>{translateUI("Upload")}</button></>}>
+    <Modal size="sm" title={formatUI("Map image — {name}", { name: map.name })} onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{translateUI(err)}</span><button className="btn primary" onClick={save}>{translateUI("Upload")}</button></>}>
       <div className="col" style={{ gap: 10 }}>
         <Field label={translateUI("Image")} hint={translateUI("PNG / JPEG, or a Nav2 map_server .pgm (add its .yaml to fill resolution and origin)")}>
           <input type="file" accept=".png,.jpg,.jpeg,.webp,.pgm,.yaml,.yml" multiple onChange={(e) => Array.from(e.target.files ?? []).forEach((f) => void pick(f))} />
@@ -476,7 +476,7 @@ function UploadImage({ map, onClose }: { map: MapDetail; onClose: () => void }) 
           <Field label={translateUI("Origin x")}><input className="input" type="number" value={origin[0]} onChange={(e) => setOrigin([Number(e.target.value), origin[1]])} /></Field>
           <Field label={translateUI("Origin y")}><input className="input" type="number" value={origin[1]} onChange={(e) => setOrigin([origin[0], Number(e.target.value)])} /></Field>
         </div>
-        <Field label={`Opacity — ${Math.round(opacity * 100)}%`}><input type="range" min={0.1} max={1} step={0.05} value={opacity} onChange={(e) => setOpacity(Number(e.target.value))} /></Field>
+        <Field label={formatUI("Opacity — {opacity}%", { opacity: Math.round(opacity * 100) })}><input type="range" min={0.1} max={1} step={0.05} value={opacity} onChange={(e) => setOpacity(Number(e.target.value))} /></Field>
       </div>
     </Modal>
   );

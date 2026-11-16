@@ -1,4 +1,4 @@
-import { translateUI } from "../lib/language";
+import { formatUI, translateUI } from "../lib/language";
 import { useEffect, useMemo, useState } from "react";
 import { CircleSlash, OctagonX, Plus, Send } from "lucide-react";
 import { api } from "../api/client";
@@ -65,7 +65,7 @@ export function FleetsPage() {
             <div className="row between">
               <div>
                 <h1 className="row" style={{ gap: 10 }}><span className="fleet-swatch" style={vars({ "--c": fleet.color })} />{fleet.name}</h1>
-                <div className="muted">{fleet.description || `${translateUI(ROBOT_TYPE_LABEL[fleet.robot_type])} fleet`}</div>
+                <div className="muted">{fleet.description || translateUI(ROBOT_TYPE_LABEL[fleet.robot_type]) + translateUI(" fleet")}</div>
               </div>
               <div className="row">
                 <button className="btn" onClick={() => danger(`/fleets/${fleet.id}/stop`)}><CircleSlash size={13} /> {translateUI("Stop fleet")}</button>
@@ -76,14 +76,14 @@ export function FleetsPage() {
               {(["total", "online", "busy", "idle", "charging", "error", "offline"] as const).map((k) => (
                 <div key={k}>
                   <div className="v" style={{ color: k === "error" && stats.error ? "var(--err)" : undefined }}>{stats[k]}</div>
-                  <div className="k">{k}</div>
+                  <div className="k">{translateUI(k)}</div>
                 </div>
               ))}
             </div>
             <div className="col" style={{ gap: 6 }}>
               <div className="row between">
                 <span className="section-title">{translateUI("Utilization")}</span>
-                <span className="muted num">{stats.online ? Math.round((stats.busy / stats.online) * 100) : 0}% of online robots busy</span>
+                <span className="muted num">{stats.online ? Math.round((stats.busy / stats.online) * 100) : 0}{translateUI("% of online robots busy")}</span>
               </div>
               <div className="util">
                 <i style={{ width: `${(stats.busy / Math.max(1, stats.total)) * 100}%`, background: MODE_META.moving.color }} />
@@ -97,7 +97,7 @@ export function FleetsPage() {
                 <div className="row">
                   <input type="checkbox" className="cbx" checked={checked.length === ids.length && ids.length > 0} onChange={() => setChecked(checked.length === ids.length ? [] : ids)} />
                   <span className="panel-title">{translateUI("Robots")}</span>
-                  <span className="faint">{checked.length ? `${checked.length} selected` : "select to dispatch"}</span>
+                  <span className="faint">{checked.length ? formatUI("{count} selected", { count: checked.length }) : translateUI("select to dispatch")}</span>
                 </div>
                 <button className="btn primary sm" disabled={!checked.length} onClick={() => openComposer({ robotIds: checked })}><Send size={13} /> {translateUI("Dispatch selected")}</button>
               </div>
@@ -115,7 +115,7 @@ export function FleetsPage() {
                         <td><Battery value={st?.battery_pct ?? null} charging={st?.charging} /></td>
                         <td className="mono">{st?.current_task_id ?? "—"}</td>
                         <td className="mono num">{st ? `${st.pose.x.toFixed(1)}, ${st.pose.y.toFixed(1)}` : "—"}</td>
-                        <td className="muted ellipsis" style={{ maxWidth: 260 }}>{st?.status_reason}</td>
+                        <td className="muted ellipsis" style={{ maxWidth: 260 }}>{translateUI(st?.status_reason ?? "")}</td>
                       </tr>
                     );
                   })}
@@ -126,12 +126,12 @@ export function FleetsPage() {
               <div className="section-title" style={{ marginBottom: 8 }}>{translateUI("Configuration")}</div>
               <div className="kv" style={{ gridTemplateColumns: "180px 1fr" }}>
                 <span>{translateUI("Robot type")}</span><span>{translateUI(ROBOT_TYPE_LABEL[fleet.robot_type])} · {fleet.layer} {translateUI("layer")}</span>
-                <span>{translateUI("Capabilities")}</span><span>{fleet.capabilities.map(titleCase).join(", ")}</span>
+                <span>{translateUI("Capabilities")}</span><span>{fleet.capabilities.map((c) => translateUI(titleCase(c))).join(", ")}</span>
                 <span>{translateUI("Navigation")}</span><span>{fleet.navigation.stack}{fleet.navigation.planner ? ` · ${fleet.navigation.planner}` : ""}{fleet.navigation.controller ? ` · ${fleet.navigation.controller}` : ""} {translateUI("· localization")}{" "}{fleet.navigation.localization}</span>
-                <span>{translateUI("Footprint")}</span><span>{fleet.footprint.shape === "circle" ? `circle r ${fleet.footprint.radius} m` : `${fleet.footprint.length} × ${fleet.footprint.width} m`}</span>
-                <span>{translateUI("Motion limits")}</span><span>{fleet.limits.max_speed} m/s · accel {fleet.limits.max_accel} · decel {fleet.limits.max_decel} m/s²{fleet.limits.cruise_altitude ? ` · cruise ${fleet.limits.cruise_altitude} m` : ""}</span>
-                <span>{translateUI("Battery policy")}</span><span>{translateUI("never below")}{" "}{fleet.battery.min_pct}% · recharge under {fleet.battery.recharge_pct}% · full at {fleet.battery.charged_pct}%{fleet.charging_required ? " · auto-charge" : ""}</span>
-                <span>{translateUI("Maps")}</span><span>{fleet.map_ids.join(", ") || "any"}</span>
+                <span>{translateUI("Footprint")}</span><span>{fleet.footprint.shape === "circle" ? formatUI("circle r {radius} m", { radius: fleet.footprint.radius }) : `${fleet.footprint.length} × ${fleet.footprint.width} m`}</span>
+                <span>{translateUI("Motion limits")}</span><span>{fleet.limits.max_speed} {translateUI("m/s · accel")} {fleet.limits.max_accel} {translateUI("· decel")} {fleet.limits.max_decel} m/s²{fleet.limits.cruise_altitude ? formatUI(" · cruise {altitude} m", { altitude: fleet.limits.cruise_altitude }) : ""}</span>
+                <span>{translateUI("Battery policy")}</span><span>{translateUI("never below")}{" "}{fleet.battery.min_pct}{translateUI("% · recharge under")} {fleet.battery.recharge_pct}{translateUI("% · full at")} {fleet.battery.charged_pct}%{fleet.charging_required ? translateUI(" · auto-charge") : ""}</span>
+                <span>{translateUI("Maps")}</span><span>{fleet.map_ids.join(", ") || translateUI("any")}</span>
                 <span>{translateUI("Communication")}</span><span>{fleet.communication.protocol}</span>
                 <span>{translateUI("Traffic priority")}</span><span>{fleet.priority}</span>
               </div>

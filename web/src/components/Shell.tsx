@@ -131,7 +131,7 @@ export function ConfirmDialog() {
     >
       <div className="col" style={{ gap: 10 }}>
         <div style={{ fontSize: 15, fontWeight: 600 }}>{translateUI(c.summary)}</div>
-        {c.detail && <div className="muted">{c.detail}</div>}
+        {c.detail && <div className="muted">{translateUI(c.detail)}</div>}
         <div className="reason" style={vars({ "--c": fromLLM ? "#a78bfa" : "#60a5fa" })}>
           {translateUI("Requested by")}{" "}<b>{fromLLM ? translateUI("the AI agent") : c.requested_by}</b>
           {c.trace?.command ? <> {translateUI("for the command “")}{c.trace.command}”</> : null}
@@ -151,7 +151,7 @@ export function Toasts() {
       {toasts.map((t) => (
         <div key={t.id} className="toast glass" onClick={() => dismiss(t.id)} style={{ borderLeft: `3px solid ${color[t.kind]}` }}>
           <span style={{ color: color[t.kind], display: "inline-flex" }}>{icon[t.kind]}</span>
-          {t.text}
+          {translateUI(t.text)}
         </div>
       ))}
     </div>

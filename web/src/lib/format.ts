@@ -1,4 +1,5 @@
 import type { RobotMode, Severity, TaskStatus } from "../api/types";
+import { getChinese } from "./language";
 
 export const MODE_META: Record<RobotMode, { label: string; color: string; pulse?: boolean }> = {
   moving: { label: "Moving", color: "#38bdf8" },
@@ -51,17 +52,17 @@ export function clock(ts: number): string {
 export function ago(ts: number | null | undefined): string {
   if (!ts) return "—";
   const s = Math.max(0, Date.now() / 1000 - ts);
-  if (s < 5) return "just now";
-  if (s < 60) return `${Math.round(s)} s ago`;
-  if (s < 3600) return `${Math.round(s / 60)} min ago`;
-  return `${Math.round(s / 3600)} h ago`;
+  if (s < 5) return getChinese() ? "刚刚" : "just now";
+  if (s < 60) return getChinese() ? Math.round(s) + " 秒前" : Math.round(s) + " s ago";
+  if (s < 3600) return getChinese() ? Math.round(s / 60) + " 分钟前" : Math.round(s / 60) + " min ago";
+  return getChinese() ? Math.round(s / 3600) + " 小时前" : Math.round(s / 3600) + " h ago";
 }
 
 export function dur(s: number | null | undefined): string {
   if (s === null || s === undefined || !Number.isFinite(s)) return "—";
-  if (s < 60) return `${Math.round(s)} s`;
+  if (s < 60) return Math.round(s) + (getChinese() ? " 秒" : " s");
   const m = Math.floor(s / 60);
-  return `${m} min ${Math.round(s % 60)} s`;
+  return getChinese() ? m + " 分 " + Math.round(s % 60) + " 秒" : m + " min " + Math.round(s % 60) + " s";
 }
 
 export function pct(v: number | null | undefined): string {

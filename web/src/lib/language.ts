@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { translateOperationalText } from "./operationalTranslation";
 const key = "nayantra-language";
 const eventName = "nayantra-language-change";
 function subscribe(callback: () => void) {
@@ -9,7 +10,7 @@ function subscribe(callback: () => void) {
     window.removeEventListener("storage", callback);
   };
 }
-function getChinese() { return localStorage.getItem(key) !== "en"; }
+export function getChinese() { return localStorage.getItem(key) !== "en"; }
 export function useLanguage(): [boolean, (zh: boolean) => void] {
   const zh = useSyncExternalStore(subscribe, getChinese, () => true);
   return [zh, (value) => {
@@ -37,5 +38,12 @@ export function translateUI(text: string): string {
   if (requested) return `需要确认：${translateUI(requested[1])}（由操作界面请求）`;
   const start = /^Nayantra core (.+) started: (\d+) fleets, (\d+) robots, (\d+) maps$/.exec(text);
   if (start) return `Nayantra 核心 ${start[1]} 已启动：${start[2]} 个车队、${start[3]} 台机器人、${start[4]} 张地图`;
-  return text;
+  return translateOperationalText(text);
+}
+
+/** Format translated UI text without interpreting replacement values. */
+export function formatUI(template: string, values: Record<string, string | number>): string {
+  return translateUI(template).replace(/\{([A-Za-z][A-Za-z0-9_]*)\}/g, (match, name: string) =>
+    Object.hasOwn(values, name) ? String(values[name]) : match,
+  );
 }

@@ -107,7 +107,7 @@ export function ConflictFlashes() {
         const resolved = now - at > 900;
         return (
           <div key={c.id} className="flash glass">
-            <div className="t"><TriangleAlert size={13} /> {translateUI("Potential")}{" "}{c.kind.replace("_", "-")} {translateUI("conflict")}</div>
+            <div className="t"><TriangleAlert size={13} /> {translateUI("Potential")}{" "}{translateUI(c.kind.replace("_", "-"))} {translateUI("conflict")}</div>
             <div className="l">
               <span>{c.robots.map(name).join("  ⇄  ")}</span>
               <span className="muted">→ {c.location_name}</span>
@@ -116,7 +116,7 @@ export function ConflictFlashes() {
               <div className="l muted">{translateUI("Resolving…")}</div>
             ) : (
               <>
-                <div className="l ok"><CheckCircle2 size={12} /> {c.resolution?.message ?? "resolved"}</div>
+                <div className="l ok"><CheckCircle2 size={12} /> {translateUI(c.resolution?.message ?? "resolved")}</div>
                 <div className="l ok"><CheckCircle2 size={12} /> {translateUI("Route reservations updated · no collision")}</div>
               </>
             )}

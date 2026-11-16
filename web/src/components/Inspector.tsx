@@ -81,7 +81,7 @@ function RobotPanel({ robotId, onFocus }: { robotId: string; onFocus?: (x: numbe
         </div>
         {st?.status_reason && (
           <div className="reason" style={{ marginTop: 10, ...vars({ "--c": MODE_META[mode].color }) }}>
-            {st.status_reason}
+            {translateUI(st.status_reason)}
           </div>
         )}
       </div>
@@ -173,7 +173,7 @@ function RobotPanel({ robotId, onFocus }: { robotId: string; onFocus?: (x: numbe
           <span>{translateUI("CPU / GPU")}</span><span>{h?.cpu_pct != null ? pct(h.cpu_pct) : translateUI("not reported")}{h?.gpu_pct != null ? ` / ${pct(h.gpu_pct)}` : ""}</span>
           <span>{translateUI("Temperature")}</span><span>{h?.temperature_c != null ? `${h.temperature_c.toFixed(0)} °C` : translateUI("not reported")}</span>
           <span>{translateUI("Sensors")}</span>
-          <span>{Object.keys(h?.sensors ?? {}).length ? Object.entries(h!.sensors).map(([k, v]) => `${k}: ${v}`).join(", ") : (robot.navigation.sensors.join(", ") || "not reported")}</span>
+          <span>{Object.keys(h?.sensors ?? {}).length ? Object.entries(h!.sensors).map(([k, v]) => `${k}: ${v}`).join(", ") : (robot.navigation.sensors.map(translateUI).join(", ") || translateUI("not reported"))}</span>
         </div>
       </div>
 
@@ -185,7 +185,7 @@ function RobotPanel({ robotId, onFocus }: { robotId: string; onFocus?: (x: numbe
           <span>{translateUI("Model")}</span><span>{[robot.manufacturer, robot.model].filter(Boolean).join(" ") || "—"}</span>
           <span>{translateUI("Adapter")}</span><span>{st?.adapter ?? "—"} ({robot.effective.communication.protocol})</span>
           <span>{translateUI("Stack")}</span><span>{robot.effective.nav_stack} · {robot.effective.localization}</span>
-          <span>{translateUI("Capabilities")}</span><span>{robot.effective.capabilities.map(titleCase).join(", ")}</span>
+          <span>{translateUI("Capabilities")}</span><span>{robot.effective.capabilities.map((c) => translateUI(titleCase(c))).join(", ")}</span>
           <span>{translateUI("Max speed")}</span><span className="num">{robot.effective.max_speed} m/s</span>
         </div>
       </div>
@@ -211,7 +211,7 @@ export function TaskSummary({ task }: { task: Task }) {
           </div>
         ))}
       </div>
-      {task.status_reason && <div className="faint" style={{ fontSize: 12 }}>{task.status_reason}</div>}
+      {task.status_reason && <div className="faint" style={{ fontSize: 12 }}>{translateUI(task.status_reason)}</div>}
     </div>
   );
 }

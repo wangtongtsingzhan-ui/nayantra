@@ -1,4 +1,4 @@
-import { translateUI } from "../lib/language";
+import { formatUI, translateUI } from "../lib/language";
 import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleAlert, CircleDashed, MapPin, Plus } from "lucide-react";
 import { api } from "../api/client";
@@ -177,7 +177,7 @@ export function RegisterWizard() {
   };
 
   const numField = (label: string, key: keyof typeof phys, unit: string, hint?: string) => (
-    <Field label={`${label} (${unit})`} hint={hint}>
+    <Field label={`${translateUI(label)} (${translateUI(unit)})`} hint={hint ? translateUI(hint) : undefined}>
       <input className="input" type="number" step="0.05" min={0} value={phys[key] || ""} placeholder="—" onChange={(e) => setPhys({ ...phys, [key]: Number(e.target.value) })} />
     </Field>
   );
@@ -198,7 +198,7 @@ export function RegisterWizard() {
                 {(meta?.robot_types ?? ["ugv", "uav", "quadruped", "humanoid", "other"]).map((t) => (
                   <button key={t} className={type === t ? "on" : ""} onClick={() => pickType(t)}>
                     <span className="ct row" style={{ gap: 6 }}><RobotTypeIcon type={t} size={15} /> {translateUI(ROBOT_TYPE_LABEL[t])}</span>
-                    <span className="cd">{TYPE_DESC[t]}</span>
+                    <span className="cd">{translateUI(TYPE_DESC[t])}</span>
                   </button>
                 ))}
               </div>
@@ -219,7 +219,7 @@ export function RegisterWizard() {
                   {compatibleFleets.map((f) => (
                     <button key={f.id} className={fleetId === f.id ? "on" : ""} onClick={() => setFleetId(f.id)}>
                       <span className="ct row" style={{ gap: 7 }}><span className="fleet-swatch" style={vars({ "--c": f.color })} />{f.name}</span>
-                      <span className="cd">{f.robots.length} {translateUI("robots ·")}{" "}{f.capabilities.slice(0, 4).join(", ")}</span>
+                      <span className="cd">{f.robots.length} {translateUI("robots ·")}{" "}{f.capabilities.slice(0, 4).map((c) => translateUI(meta?.capabilities[c] ?? titleCase(c))).join(", ")}</span>
                     </button>
                   ))}
                 </div>
@@ -249,7 +249,7 @@ export function RegisterWizard() {
             <div className="muted">{translateUI("What can this robot do? Tasks are allocated by capability, never by robot type.")}</div>
             <div className="chips">
               {Object.entries(meta?.capabilities ?? {}).map(([k, v]) => (
-                <button key={k} className={`chip${caps.includes(k) ? " on" : ""}`} onClick={() => setCaps(caps.includes(k) ? caps.filter((c) => c !== k) : [...caps, k])}>{v}</button>
+                <button key={k} className={`chip${caps.includes(k) ? " on" : ""}`} onClick={() => setCaps(caps.includes(k) ? caps.filter((c) => c !== k) : [...caps, k])}>{translateUI(v)}</button>
               ))}
               {caps.filter((c) => !meta?.capabilities[c]).map((c) => (
                 <button key={c} className="chip on" onClick={() => setCaps(caps.filter((x) => x !== c))}>{translateUI(titleCase(c))}</button>
@@ -273,19 +273,19 @@ export function RegisterWizard() {
               </Field>
               <Field label={translateUI("Navigation stack")}>
                 <select className="input" value={nav.stack} onChange={(e) => setNav({ ...nav, stack: e.target.value })}>
-                  {(meta?.nav_stacks ?? []).map((s) => <option key={s} value={s}>{s === "kinematic_sim" ? translateUI("Kinematic simulator") : s}</option>)}
+                  {(meta?.nav_stacks ?? []).map((s) => <option key={s} value={s}>{s === "kinematic_sim" ? translateUI("Kinematic simulator") : translateUI(s)}</option>)}
                 </select>
               </Field>
               <Field label={translateUI("Localization")}>
                 <select className="input" value={nav.localization} onChange={(e) => setNav({ ...nav, localization: e.target.value })}>
-                  {(meta?.localization ?? []).map((s) => <option key={s} value={s}>{s}</option>)}
+                  {(meta?.localization ?? []).map((s) => <option key={s} value={s}>{translateUI(s)}</option>)}
                 </select>
               </Field>
               <Field label={translateUI("ROS 2 namespace")} hint={translateUI("Topics become <ns>/odom, <ns>/navigate_to_pose")}>
                 <input className="input mono" placeholder={`/${id || slug(name) || "robot_01"}`} value={nav.namespace} onChange={(e) => setNav({ ...nav, namespace: e.target.value })} />
               </Field>
             </div>
-            <button className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => setAdvanced(!advanced)}>{advanced ? "Hide" : "Show"} {translateUI("frames &amp; sensors")}</button>
+            <button className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => setAdvanced(!advanced)}>{translateUI(advanced ? "Hide" : "Show")} {translateUI("frames & sensors")}</button>
             {advanced && (
               <div className="grid3">
                 <Field label={translateUI("Map frame")}><input className="input mono" value={nav.frame} onChange={(e) => setNav({ ...nav, frame: e.target.value })} /></Field>
@@ -294,7 +294,7 @@ export function RegisterWizard() {
                 <div style={{ gridColumn: "1 / -1" }}>
                   <Field label={translateUI("Sensors")}>
                     <div className="chips">
-                      {SENSORS.map((s) => <button key={s} className={`chip${nav.sensors.includes(s) ? " on" : ""}`} onClick={() => setNav({ ...nav, sensors: nav.sensors.includes(s) ? nav.sensors.filter((x) => x !== s) : [...nav.sensors, s] })}>{s}</button>)}
+                      {SENSORS.map((s) => <button key={s} className={`chip${nav.sensors.includes(s) ? " on" : ""}`} onClick={() => setNav({ ...nav, sensors: nav.sensors.includes(s) ? nav.sensors.filter((x) => x !== s) : [...nav.sensors, s] })}>{translateUI(s)}</button>)}
                     </div>
                   </Field>
                 </div>
@@ -329,14 +329,14 @@ export function RegisterWizard() {
               {PROTOCOLS.map((p) => (
                 <button key={p.id} className={comm.protocol === p.id ? "on" : ""} onClick={() => { setComm({ ...comm, protocol: p.id }); if (p.id === "simulation") setNav((n) => ({ ...n, stack: "kinematic_sim", localization: "ground_truth" })); }}>
                   <span className="ct">{translateUI(p.label)}</span>
-                  <span className="cd" style={{ color: meta && !meta.implemented_protocols.includes(p.id) ? "var(--warn)" : undefined }}>{p.desc}</span>
+                  <span className="cd" style={{ color: meta && !meta.implemented_protocols.includes(p.id) ? "var(--warn)" : undefined }}>{translateUI(p.desc)}</span>
                 </button>
               ))}
             </div>
             {comm.protocol === "ros2" && (
               <div className="grid2">
                 <Field label={translateUI("Namespace")} hint={translateUI("Leave empty for the global namespace (single robot)")}><input className="input mono" value={comm.namespace || nav.namespace} onChange={(e) => setComm({ ...comm, namespace: e.target.value })} /></Field>
-                <Field label={translateUI("ROS domain")} hint={translateUI("The core uses ROS_DOMAIN_ID from its environment")}><input className="input" disabled value="from core environment" /></Field>
+                <Field label={translateUI("ROS domain")} hint={translateUI("The core uses ROS_DOMAIN_ID from its environment")}><input className="input" disabled value={translateUI("from core environment")} /></Field>
               </div>
             )}
             {comm.protocol === "isaac_demo" && (
@@ -350,10 +350,10 @@ export function RegisterWizard() {
                 <Field label={translateUI("Spawn at")}>
                   <select className="input" value={spawn.waypoint_id} onChange={(e) => setSpawn({ ...spawn, waypoint_id: e.target.value })}>
                     <option value="">{translateUI("Choose a waypoint…")}</option>
-                    {spawnChoices.map((w) => <option key={w.id} value={w.id} disabled={w.taken}>{w.name}{w.taken ? " (occupied)" : ""}</option>)}
+                    {spawnChoices.map((w) => <option key={w.id} value={w.id} disabled={w.taken}>{w.name}{w.taken ? translateUI(" (occupied)") : ""}</option>)}
                   </select>
                 </Field>
-                <Field label={`Initial battery — ${spawn.battery_pct}%`}><input type="range" min={5} max={100} value={spawn.battery_pct} onChange={(e) => setSpawn({ ...spawn, battery_pct: Number(e.target.value) })} /></Field>
+                <Field label={translateUI("Initial battery") + " — " + spawn.battery_pct + "%"}><input type="range" min={5} max={100} value={spawn.battery_pct} onChange={(e) => setSpawn({ ...spawn, battery_pct: Number(e.target.value) })} /></Field>
               </div>
             )}
           </div>
@@ -364,11 +364,11 @@ export function RegisterWizard() {
             <div className="kv">
               <span>{translateUI("Robot")}</span><span>{name} <span className="faint mono">({id || slug(name)})</span></span>
               <span>{translateUI("Type")}</span><span>{translateUI(ROBOT_TYPE_LABEL[type])} · {[manufacturer, model].filter(Boolean).join(" ") || "—"}</span>
-              <span>{translateUI("Fleet")}</span><span>{fleetMode === "new" ? `${newFleet.name} (new)` : fleet?.name}</span>
-              <span>{translateUI("Capabilities")}</span><span>{caps.map(titleCase).join(", ") || "—"}</span>
-              <span>{translateUI("Navigation")}</span><span>{nav.stack} · {nav.localization} {translateUI("· map")}{" "}{maps[nav.map_id]?.name ?? nav.map_id}</span>
+              <span>{translateUI("Fleet")}</span><span>{fleetMode === "new" ? newFleet.name + translateUI(" (new)") : fleet?.name}</span>
+              <span>{translateUI("Capabilities")}</span><span>{caps.map((c) => translateUI(meta?.capabilities[c] ?? titleCase(c))).join(", ") || "—"}</span>
+              <span>{translateUI("Navigation")}</span><span>{translateUI(nav.stack)} · {translateUI(nav.localization)} {translateUI("· map")}{" "}{maps[nav.map_id]?.name ?? nav.map_id}</span>
               <span>{translateUI("Physical")}</span><span>r {phys.radius} m · {phys.max_speed} m/s{phys.payload_kg ? ` · ${phys.payload_kg} kg` : ""}</span>
-              <span>{translateUI("Link")}</span><span>{comm.protocol}{comm.endpoint ? ` · ${comm.endpoint}` : ""}{spawn.waypoint_id ? ` · spawn ${map?.waypoints.find((w) => w.id === spawn.waypoint_id)?.name}` : ""}</span>
+              <span>{translateUI("Link")}</span><span>{comm.protocol}{comm.endpoint ? ` · ${comm.endpoint}` : ""}{spawn.waypoint_id ? translateUI(" · spawn ") + (map?.waypoints.find((w) => w.id === spawn.waypoint_id)?.name ?? spawn.waypoint_id) : ""}</span>
             </div>
             <div className="faint">{translateUI("Registering runs a connection test right away.")}</div>
           </div>
@@ -384,9 +384,9 @@ export function RegisterWizard() {
         <>
           <button className="btn" onClick={() => (step === 0 || result ? close() : setStep(step - 1))}>{step === 0 || result ? translateUI("Close") : <><ArrowLeft size={13} /> {translateUI("Back")}</>}</button>
           <div className="row">
-            {error && <span style={{ color: "var(--err)", fontSize: 12.5 }}>{error}</span>}
+            {error && <span style={{ color: "var(--err)", fontSize: 12.5 }}>{translateUI(error)}</span>}
             {step < STEPS.length - 1 && <button className="btn primary" onClick={next}>{translateUI("Next")}{" "}<ArrowRight size={13} /></button>}
-            {step === STEPS.length - 1 && !result && <button className="btn primary" disabled={busy} onClick={register}>{busy ? "Connecting…" : translateUI("Register & test connection")}</button>}
+            {step === STEPS.length - 1 && !result && <button className="btn primary" disabled={busy} onClick={register}>{busy ? translateUI("Connecting…") : translateUI("Register & test connection")}</button>}
             {result && (
               <button className="btn primary" onClick={() => { const s = useWorld.getState(); s.setPage("operations"); s.selectRobot(result.id); if (result.effective.map_id) s.setActiveMap(result.effective.map_id); close(); }}>
                 <MapPin size={13} /> {translateUI("Show on map")}{" "}</button>
@@ -397,7 +397,7 @@ export function RegisterWizard() {
     >
       <div className="steps">
         {STEPS.map((s, i) => (
-          <div key={s} className={`s${i < step ? " done" : ""}${i === step ? " cur" : ""}`}><div className="b" />{s}</div>
+          <div key={s} className={`s${i < step ? " done" : ""}${i === step ? " cur" : ""}`}><div className="b" />{translateUI(s)}</div>
         ))}
       </div>
       {body()}
@@ -413,15 +413,15 @@ function ConnectResult({ robot }: { robot: Robot }) {
     <div className="col" style={{ gap: 10 }}>
       <div className="row" style={{ fontWeight: 600 }}>
         {ok ? <CheckCircle2 size={16} style={{ color: "var(--ok)" }} /> : <CircleAlert size={16} style={{ color: "var(--err)" }} />}
-        {ok ? `${robot.name} is connected and ready for work` : `${robot.name} was registered, but the connection test failed`}
+        {formatUI(ok ? "{name} is connected and ready for work" : "{name} was registered, but the connection test failed", { name: robot.name })}
       </div>
       <div>
         {checks.map((c, i) => (
           <div key={c.name} className="check-line" style={{ animationDelay: `${i * 120}ms` }}>
             {c.ok ? <CheckCircle2 size={16} style={{ color: "var(--ok)" }} /> : c.required ? <CircleAlert size={16} style={{ color: "var(--err)" }} /> : <CircleDashed size={16} style={{ color: "var(--warn)" }} />}
             <div>
-              <div className="n">{c.name}</div>
-              <div className="d">{c.detail}</div>
+              <div className="n">{translateUI(c.name)}</div>
+              <div className="d">{translateUI(c.detail)}</div>
             </div>
           </div>
         ))}

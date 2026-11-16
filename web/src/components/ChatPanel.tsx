@@ -1,4 +1,4 @@
-import { translateUI } from "../lib/language";
+import { formatUI, translateUI } from "../lib/language";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowUp, Check, CheckCircle2, ChevronDown, ChevronUp, CircleAlert, Copy, Loader2, Sparkles, Square, SquarePen, Wrench } from "lucide-react";
 import { api } from "../api/client";
@@ -83,7 +83,7 @@ export function ChatPanel() {
     return (
       <button type="button" className="chat-bar" onClick={() => { setCollapsed(false); setFocusTick((n) => n + 1); }}>
         {busy ? <ThinkingIcon size={26} /> : <Sparkles size={16} />}
-        <span className="grow">{busy ? "Working…" : translateUI("Command anything…")}</span>
+        <span className="grow">{busy ? translateUI("Working…") : translateUI("Command anything…")}</span>
         {!busy && <span className="kbd">/</span>}
         <ChevronUp size={15} />
       </button>
@@ -116,8 +116,7 @@ export function ChatPanel() {
       >
         {unavailable && (
           <div className="reason" style={vars({ "--c": "#fbbf24" })}>
-            {status?.detail}. Start the stack with <span className="mono">./nayantra.sh start</span> to use natural language. The LLM only
-            creates structured tasks; it never drives robots.
+            {status?.detail ? translateUI(status.detail) : ""}{translateUI(". Start the stack with")} <span className="mono">./nayantra.sh start</span> {translateUI("to use natural language. The LLM only creates structured tasks; it never drives robots.")}
           </div>
         )}
         {noKey && <div className="reason" style={vars({ "--c": "#fbbf24" })}>{translateUI("No API key configured for the")}{" "}{status?.provider} {translateUI("provider.")}</div>}
@@ -192,7 +191,7 @@ function Message({ turn }: { turn: ChatTurn }) {
             <div className="answer-wrap">
               <div className={`answer${a.ok ? "" : " bad"}`}>
                 {!a.ok && <CircleAlert size={14} className="bad-ico" />}
-                <div className="answer-text">{a.text ? <RichText text={a.text} /> : "Done."}</div>
+                <div className="answer-text">{a.text ? <RichText text={a.text} /> : translateUI("Done.")}</div>
               </div>
               {a.text && <CopyButton text={a.text} />}
             </div>
@@ -212,7 +211,7 @@ function Steps({ turn }: { turn: ChatTurn }) {
     <div className="steps-box">
       <button type="button" className="steps-toggle" onClick={() => setOpen(!open)} aria-expanded={show} disabled={turn.busy}>
         <Wrench size={12} />
-        {turn.busy ? translateUI("Working") : `Used ${n} tool${n > 1 ? "s" : ""}`}
+        {turn.busy ? translateUI("Working") : formatUI(n === 1 ? "Used {count} tool" : "Used {count} tools", { count: n })}
         {failed > 0 && <span style={{ color: "var(--err)" }}>· {failed} {translateUI("failed")}</span>}
         {!turn.busy && <ChevronDown size={12} className={show ? "open" : ""} />}
       </button>

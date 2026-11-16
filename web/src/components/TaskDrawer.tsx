@@ -1,4 +1,4 @@
-import { translateUI } from "../lib/language";
+import { formatUI, translateUI } from "../lib/language";
 import { useEffect, useState } from "react";
 import { Pause, Play, X } from "lucide-react";
 import { api } from "../api/client";
@@ -79,7 +79,7 @@ export function TaskDrawer() {
       <div style={{ overflow: "auto", flex: 1 }}>
         <div className="insp-sec">
           <div className="section-title">{translateUI("Why is it")}{" "}{translateUI(TASK_META[t.status].label)}?</div>
-          <div className="reason" style={vars({ "--c": TASK_META[t.status].color })}>{t.status_reason || "—"}</div>
+          <div className="reason" style={vars({ "--c": TASK_META[t.status].color })}>{translateUI(t.status_reason || "—")}</div>
         </div>
 
         <div className="insp-sec">
@@ -91,8 +91,8 @@ export function TaskDrawer() {
                 <div key={i} className="tl-item" style={c ? vars({ "--c": c }) : undefined}>
                   <div style={{ fontWeight: i === t.current_step ? 600 : 400 }}>{translateUI(s.label)}</div>
                   <div className="faint" style={{ fontSize: 12 }}>
-                    {s.kind === "go_to" && (s.target ? `→ ${wpName(s.target)}` : `one of ${s.candidates.length} spots, chosen on arrival`)}
-                    {s.detail ? ` · route ${s.detail}` : ""}
+                    {s.kind === "go_to" && (s.target ? `→ ${wpName(s.target)}` : formatUI("one of {count} spots, chosen on arrival", { count: s.candidates.length }))}
+                    {s.detail ? formatUI(" · route {route}", { route: s.detail }) : ""}
                     {s.started_at && s.finished_at ? ` · ${dur(s.finished_at - s.started_at)}` : ""}
                   </div>
                 </div>
@@ -105,7 +105,7 @@ export function TaskDrawer() {
           <div className="section-title">{translateUI("Why this robot?")}</div>
           {alloc ? (
             <>
-              <div className="reason" style={vars({ "--c": alloc.selected ? "#34d399" : "#fbbf24" })}>{alloc.explanation}</div>
+              <div className="reason" style={vars({ "--c": alloc.selected ? "#34d399" : "#fbbf24" })}>{translateUI(alloc.explanation)}</div>
               <table className="tbl" style={{ marginTop: 4 }}>
                 <thead><tr><th>{translateUI("Robot")}</th><th>{translateUI("Cost")}</th><th>{translateUI("Details")}</th></tr></thead>
                 <tbody>
@@ -122,8 +122,8 @@ export function TaskDrawer() {
                         <td className="num">{c.eligible && c.score != null ? `${c.score.toFixed(0)} s` : "—"}</td>
                         <td className="muted" style={{ fontSize: 12 }}>
                           {c.eligible
-                            ? `≈${Number(c.estimates.to_start_s ?? 0).toFixed(0)} s to start · busy ${Number(c.estimates.busy_s ?? 0).toFixed(0)} s · battery ${c.estimates.battery_pct != null ? Math.round(Number(c.estimates.battery_pct)) + "%" : "—"}`
-                            : c.reasons.join("; ")}
+                            ? formatUI("≈{start} s to start · busy {busy} s · battery {battery}", { start: Number(c.estimates.to_start_s ?? 0).toFixed(0), busy: Number(c.estimates.busy_s ?? 0).toFixed(0), battery: c.estimates.battery_pct != null ? Math.round(Number(c.estimates.battery_pct)) + "%" : "—" })
+                            : c.reasons.map(translateUI).join("; ")}
                         </td>
                       </tr>
                     ))}
@@ -138,16 +138,16 @@ export function TaskDrawer() {
         <div className="insp-sec">
           <div className="section-title">{translateUI("Origin")}</div>
           <div className="kv">
-            <span>{translateUI("Source")}</span><span>{t.trace.source}{t.trace.source === "llm" ? " (AI agent via MCP)" : ""}</span>
+            <span>{translateUI("Source")}</span><span>{t.trace.source}{t.trace.source === "llm" ? translateUI(" (AI agent via MCP)") : ""}</span>
             {t.trace.command && (<><span>{translateUI("Command")}</span><span>“{t.trace.command}”</span></>)}
             {t.trace.tool && (<><span>{translateUI("Tool")}</span><span className="mono">{t.trace.tool}</span></>)}
             {t.trace.mission_id && (<><span>{translateUI("Mission")}</span><span className="mono">{t.trace.mission_id}</span></>)}
-            {t.trace.reason && (<><span>{translateUI("Reason")}</span><span>{t.trace.reason}</span></>)}
+            {t.trace.reason && (<><span>{translateUI("Reason")}</span><span>{translateUI(t.trace.reason)}</span></>)}
             <span>{translateUI("Assigned")}</span><span>{name(t.assigned_robot)}{t.assigned_fleet ? ` · ${fleets[t.assigned_fleet]?.name ?? t.assigned_fleet}` : ""}</span>
             <span>{translateUI("Timing")}</span>
             <span className="num">
-              {t.started_at ? `started ${clock(t.started_at)}` : translateUI("not started")}
-              {t.completed_at ? ` · finished ${clock(t.completed_at)} (${dur(t.completed_at - (t.started_at ?? t.created_at))})` : ""}
+              {t.started_at ? formatUI("started {time}", { time: clock(t.started_at) }) : translateUI("not started")}
+              {t.completed_at ? formatUI(" · finished {time} ({duration})", { time: clock(t.completed_at), duration: dur(t.completed_at - (t.started_at ?? t.created_at)) }) : ""}
             </span>
           </div>
         </div>
@@ -158,7 +158,7 @@ export function TaskDrawer() {
             {events.map((e) => (
               <div key={e.id} className="tl-item" style={vars({ "--c": SEVERITY_COLOR[e.severity] })}>
                 <div style={{ fontSize: 12.5 }}>{translateUI(e.message)}</div>
-                <div className="faint mono" style={{ fontSize: 11 }}>{clock(e.ts)} · {e.type}</div>
+                <div className="faint mono" style={{ fontSize: 11 }}>{clock(e.ts)} · {translateUI(e.type)}</div>
               </div>
             ))}
             {t.history
