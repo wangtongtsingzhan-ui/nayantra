@@ -107,3 +107,8 @@ log/
 node_modules/
 web/dist/
 *.tsbuildinfo
+
+# Local translation snapshots and verification artifacts
+runtime/locale-original/
+runtime/locale-work/
+runtime/github-cli/

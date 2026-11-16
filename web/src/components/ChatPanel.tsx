@@ -1,3 +1,4 @@
+import { translateUI } from "../lib/language";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowUp, Check, CheckCircle2, ChevronDown, ChevronUp, CircleAlert, Copy, Loader2, Sparkles, Square, SquarePen, Wrench } from "lucide-react";
 import { api } from "../api/client";
@@ -82,7 +83,7 @@ export function ChatPanel() {
     return (
       <button type="button" className="chat-bar" onClick={() => { setCollapsed(false); setFocusTick((n) => n + 1); }}>
         {busy ? <ThinkingIcon size={26} /> : <Sparkles size={16} />}
-        <span className="grow">{busy ? "Working…" : "Command anything…"}</span>
+        <span className="grow">{busy ? "Working…" : translateUI("Command anything…")}</span>
         {!busy && <span className="kbd">/</span>}
         <ChevronUp size={15} />
       </button>
@@ -92,15 +93,15 @@ export function ChatPanel() {
   const unavailable = status && !status.available;
   const noKey = status?.available && status.llm_configured === false;
   return (
-    <section className="chat" aria-label="Assistant">
+    <section className="chat" aria-label={translateUI("Assistant")}>
       <header className="chat-head">
-        <span className="chat-title"><Sparkles size={15} style={{ color: "var(--accent-fg)" }} /> Assistant</span>
+        <span className="chat-title"><Sparkles size={15} style={{ color: "var(--accent-fg)" }} /> {translateUI("Assistant")}</span>
         {status?.provider && status.available && <span className="faint chat-model">{status.provider}</span>}
         <span className="grow" />
-        <button type="button" className="btn ghost sm icon" onClick={clear} disabled={busy || turns.length === 0} title="New chat" aria-label="New chat">
+        <button type="button" className="btn ghost sm icon" onClick={clear} disabled={busy || turns.length === 0} title={translateUI("New chat")} aria-label={translateUI("New chat")}>
           <SquarePen size={14} />
         </button>
-        <button type="button" className="btn ghost sm icon" onClick={() => setCollapsed(true)} title="Collapse" aria-label="Collapse">
+        <button type="button" className="btn ghost sm icon" onClick={() => setCollapsed(true)} title={translateUI("Collapse")} aria-label={translateUI("Collapse")}>
           <ChevronDown size={15} />
         </button>
       </header>
@@ -119,13 +120,13 @@ export function ChatPanel() {
             creates structured tasks; it never drives robots.
           </div>
         )}
-        {noKey && <div className="reason" style={vars({ "--c": "#fbbf24" })}>No API key configured for the {status?.provider} provider.</div>}
+        {noKey && <div className="reason" style={vars({ "--c": "#fbbf24" })}>{translateUI("No API key configured for the")}{" "}{status?.provider} {translateUI("provider.")}</div>}
 
         {turns.length === 0 ? (
           <div className="chat-empty">
             <span className="hero-mark"><Logo size={40} /></span>
-            <h2>Command anything</h2>
-            <p>Say what you want done in plain words. Risky actions always ask you to confirm first.</p>
+            <h2>{translateUI("Command anything")}</h2>
+            <p>{translateUI("Say what you want done in plain words. Risky actions always ask you to confirm first.")}</p>
             <div className="suggest">
               {EXAMPLES.map((ex) => (
                 <button key={ex} type="button" onClick={() => ask(ex)} disabled={busy}>
@@ -158,20 +159,20 @@ export function ChatPanel() {
                 submit();
               } else if (e.key === "Escape") input.current?.blur();
             }}
-            placeholder={unavailable ? "Agent offline — structured controls still work" : "Command anything…"}
-            aria-label="Natural-language command"
+            placeholder={unavailable ? translateUI("Agent offline — structured controls still work") : translateUI("Command anything…")}
+            aria-label={translateUI("Natural-language command")}
           />
           {busy ? (
-            <button type="button" className="send stop" onClick={stop} title="Stop" aria-label="Stop">
+            <button type="button" className="send stop" onClick={stop} title={translateUI("Stop")} aria-label={translateUI("Stop")}>
               <Square size={13} fill="currentColor" />
             </button>
           ) : (
-            <button type="submit" className="send" disabled={!text.trim()} title="Send (Enter)" aria-label="Send">
+            <button type="submit" className="send" disabled={!text.trim()} title={translateUI("Send (Enter)")} aria-label={translateUI("Send")}>
               <ArrowUp size={17} strokeWidth={2.4} />
             </button>
           )}
         </div>
-        <div className="composer-foot">Enter to send · Shift+Enter for a new line</div>
+        <div className="composer-foot">{translateUI("Enter to send · Shift+Enter for a new line")}</div>
       </form>
     </section>
   );
@@ -211,8 +212,8 @@ function Steps({ turn }: { turn: ChatTurn }) {
     <div className="steps-box">
       <button type="button" className="steps-toggle" onClick={() => setOpen(!open)} aria-expanded={show} disabled={turn.busy}>
         <Wrench size={12} />
-        {turn.busy ? "Working" : `Used ${n} tool${n > 1 ? "s" : ""}`}
-        {failed > 0 && <span style={{ color: "var(--err)" }}>· {failed} failed</span>}
+        {turn.busy ? translateUI("Working") : `Used ${n} tool${n > 1 ? "s" : ""}`}
+        {failed > 0 && <span style={{ color: "var(--err)" }}>· {failed} {translateUI("failed")}</span>}
         {!turn.busy && <ChevronDown size={12} className={show ? "open" : ""} />}
       </button>
       {show &&
@@ -242,8 +243,8 @@ function CopyButton({ text }: { text: string }) {
     <button
       type="button"
       className="btn ghost sm icon copy"
-      title="Copy answer"
-      aria-label="Copy answer"
+      title={translateUI("Copy answer")}
+      aria-label={translateUI("Copy answer")}
       onClick={() => {
         void navigator.clipboard?.writeText(text).then(() => {
           setDone(true);

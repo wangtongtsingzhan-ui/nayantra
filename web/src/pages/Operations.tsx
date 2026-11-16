@@ -1,3 +1,4 @@
+import { translateUI } from "../lib/language";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, isConfirmation } from "../api/client";
 import type { Point2 } from "../api/types";
@@ -113,7 +114,7 @@ export function OperationsPage() {
             }}
           />
         ) : (
-          <Empty>{s.loaded ? "No maps yet — create one in the Map editor." : "Connecting to Nayantra Core…"}</Empty>
+          <Empty>{s.loaded ? translateUI("No maps yet — create one in the Map editor.") : translateUI("Connecting to Nayantra Core…")}</Empty>
         )}
         {map && <MapChrome control={control} cursor={cursor} pxPerM={pxPerM} />}
         <ConflictFlashes />

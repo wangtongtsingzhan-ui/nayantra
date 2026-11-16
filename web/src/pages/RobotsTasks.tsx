@@ -1,3 +1,4 @@
+import { translateUI } from "../lib/language";
 import { useMemo, useState } from "react";
 import { MapPin, Plus, Power, Trash2 } from "lucide-react";
 import { api } from "../api/client";
@@ -25,16 +26,16 @@ export function RobotsPage() {
   return (
     <div className="page">
       <div className="row between" style={{ marginBottom: 14 }}>
-        <h1>Robots <span className="faint" style={{ fontWeight: 400, fontSize: 14 }}>{list.length}</span></h1>
+        <h1>{translateUI("Robots")}{" "}<span className="faint" style={{ fontWeight: 400, fontSize: 14 }}>{list.length}</span></h1>
         <div className="row">
-          <input className="input" style={{ width: 240 }} placeholder="Filter…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <button className="btn primary" onClick={() => openWizard(true)}><Plus size={14} /> Register robot</button>
+          <input className="input" style={{ width: 240 }} placeholder={translateUI("Filter…")} value={q} onChange={(e) => setQ(e.target.value)} />
+          <button className="btn primary" onClick={() => openWizard(true)}><Plus size={14} /> {translateUI("Register robot")}</button>
         </div>
       </div>
       <div className="panel">
         <table className="tbl">
           <thead>
-            <tr><th>Robot</th><th>Fleet</th><th>Model</th><th>Link</th><th>Status</th><th>Battery</th><th>Capabilities</th><th /></tr>
+            <tr><th>{translateUI("Robot")}</th><th>{translateUI("Fleet")}</th><th>{translateUI("Model")}</th><th>{translateUI("Link")}</th><th>{translateUI("Status")}</th><th>{translateUI("Battery")}</th><th>{translateUI("Capabilities")}</th><th /></tr>
           </thead>
           <tbody>
             {list.map((r) => {
@@ -50,25 +51,25 @@ export function RobotsPage() {
                     </span>
                   </td>
                   <td>{f?.name ?? r.fleet_id}</td>
-                  <td className="muted">{ROBOT_TYPE_LABEL[r.effective.robot_type]} · {[r.manufacturer, r.model].filter(Boolean).join(" ") || "—"}</td>
+                  <td className="muted">{translateUI(ROBOT_TYPE_LABEL[r.effective.robot_type])} · {[r.manufacturer, r.model].filter(Boolean).join(" ") || "—"}</td>
                   <td>
                     <span className="badge" style={vars({ "--c": st?.online ? "#34d399" : failed ? "#f87171" : "#7c8ea0" })} title={failed?.detail ?? st?.connection_detail}>
                       {r.effective.communication.protocol}{st?.online ? "" : failed ? " · failed" : " · offline"}
                     </span>
                   </td>
-                  <td>{r.enabled ? <ModeBadge mode={st?.online ? st.mode : "offline"} /> : <span className="badge">decommissioned</span>}</td>
+                  <td>{r.enabled ? <ModeBadge mode={st?.online ? st.mode : "offline"} /> : <span className="badge">{translateUI("decommissioned")}</span>}</td>
                   <td><Battery value={st?.battery_pct ?? null} charging={st?.charging} /></td>
                   <td className="muted ellipsis" style={{ maxWidth: 240 }}>{r.effective.capabilities.join(", ")}</td>
                   <td style={{ textAlign: "right", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
-                    <button className="btn ghost sm icon" title="Show on map" onClick={() => show(r.id, r.effective.map_id)}><MapPin size={13} /></button>
+                    <button className="btn ghost sm icon" title={translateUI("Show on map")} onClick={() => show(r.id, r.effective.map_id)}><MapPin size={13} /></button>
                     <button
                       className="btn ghost sm icon"
-                      title={r.enabled ? "Decommission (take out of service)" : "Recommission"}
+                      title={r.enabled ? translateUI("Decommission (take out of service)") : "Recommission"}
                       onClick={() => api.patch(`/robots/${r.id}`, { enabled: !r.enabled }).catch((e) => toast("error", errMsg(e)))}
                     >
                       <Power size={13} />
                     </button>
-                    <button className="btn ghost sm icon" title="Remove robot (asks for confirmation)" onClick={() => api.del(`/robots/${r.id}`).catch((e) => toast("error", errMsg(e)))}>
+                    <button className="btn ghost sm icon" title={translateUI("Remove robot (asks for confirmation)")} onClick={() => api.del(`/robots/${r.id}`).catch((e) => toast("error", errMsg(e)))}>
                       <Trash2 size={13} />
                     </button>
                   </td>
@@ -77,7 +78,7 @@ export function RobotsPage() {
             })}
           </tbody>
         </table>
-        {list.length === 0 && <Empty>No robots registered yet.</Empty>}
+        {list.length === 0 && <Empty>{translateUI("No robots registered yet.")}</Empty>}
       </div>
     </div>
   );
@@ -103,28 +104,28 @@ export function TasksPage() {
   return (
     <div className="page">
       <div className="row between" style={{ marginBottom: 14 }}>
-        <h1>Tasks</h1>
+        <h1>{translateUI("Tasks")}</h1>
         <div className="row">
           <div className="chips">
             {FILTERS.map((x) => (
               <button key={x.id} className={`chip${filter === x.id ? " on" : ""}`} onClick={() => setFilter(x.id)}>
-                {x.label} <span className="faint">{Object.values(tasks).filter((t) => x.test(t.status)).length}</span>
+                {translateUI(x.label)} <span className="faint">{Object.values(tasks).filter((t) => x.test(t.status)).length}</span>
               </button>
             ))}
           </div>
-          <button className="btn primary" onClick={() => openComposer()}><Plus size={14} /> New task</button>
+          <button className="btn primary" onClick={() => openComposer()}><Plus size={14} /> {translateUI("New task")}</button>
         </div>
       </div>
       <div className="panel">
         <table className="tbl">
           <thead>
-            <tr><th>ID</th><th>Type</th><th>Created by</th><th>Fleet</th><th>Robot</th><th>Priority</th><th>Status</th><th>Created</th><th>Started</th><th>Completed</th><th>Current step</th><th style={{ width: 120 }}>Progress</th></tr>
+            <tr><th>ID</th><th>{translateUI("Type")}</th><th>{translateUI("Created by")}</th><th>{translateUI("Fleet")}</th><th>{translateUI("Robot")}</th><th>{translateUI("Priority")}</th><th>{translateUI("Status")}</th><th>{translateUI("Created")}</th><th>{translateUI("Started")}</th><th>{translateUI("Completed")}</th><th>{translateUI("Current step")}</th><th style={{ width: 120 }}>{translateUI("Progress")}</th></tr>
           </thead>
           <tbody>
             {list.map((t) => (
               <tr key={t.id} className="click" onClick={() => selectTask(t.id)} title={t.status_reason}>
                 <td className="mono">{t.id}</td>
-                <td>{t.type}</td>
+                <td>{translateUI(t.type)}</td>
                 <td>{t.created_by}{t.trace.source === "llm" ? " (AI)" : ""}</td>
                 <td>{t.assigned_fleet ? fleets[t.assigned_fleet]?.name ?? t.assigned_fleet : "—"}</td>
                 <td>{t.assigned_robot ? robots[t.assigned_robot]?.name ?? t.assigned_robot : "—"}</td>
@@ -133,13 +134,13 @@ export function TasksPage() {
                 <td className="num faint">{clock(t.created_at)}</td>
                 <td className="num faint">{t.started_at ? clock(t.started_at) : "—"}</td>
                 <td className="num faint">{t.completed_at ? clock(t.completed_at) : "—"}</td>
-                <td className="ellipsis" style={{ maxWidth: 200 }}>{t.steps[t.current_step]?.label ?? "—"}</td>
+                <td className="ellipsis" style={{ maxWidth: 200 }}>{translateUI(t.steps[t.current_step]?.label ?? "—")}</td>
                 <td><Bar value={t.progress} color={TASK_META[t.status].color} /></td>
               </tr>
             ))}
           </tbody>
         </table>
-        {list.length === 0 && <Empty>No tasks match.</Empty>}
+        {list.length === 0 && <Empty>{translateUI("No tasks match.")}</Empty>}
       </div>
     </div>
   );

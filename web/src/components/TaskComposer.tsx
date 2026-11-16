@@ -1,3 +1,4 @@
+import { translateUI } from "../lib/language";
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Plus, Send, X } from "lucide-react";
 import { api, isConfirmation } from "../api/client";
@@ -101,21 +102,21 @@ export function TaskComposer() {
   };
 
   const placeInput = (key: string, required: boolean) => (
-    <Field key={key} label={`${titleCase(key)}${required ? "" : " (optional)"}`}>
-      <input className="input" list="nayantra-places" value={String(params[key] ?? "")} placeholder="waypoint or zone name" onChange={(e) => setParams({ ...params, [key]: e.target.value })} />
+    <Field key={key} label={`${translateUI(titleCase(key))}${required ? "" : translateUI(" (optional)")}`}>
+      <input className="input" list="nayantra-places" value={String(params[key] ?? "")} placeholder={translateUI("waypoint or zone name")} onChange={(e) => setParams({ ...params, [key]: e.target.value })} />
     </Field>
   );
 
   return (
     <Modal
-      title="New task"
+      title={translateUI("New task")}
       onClose={close}
       footer={
         <>
-          <button className="btn" onClick={doPreview}><Eye size={13} /> Preview allocation</button>
+          <button className="btn" onClick={doPreview}><Eye size={13} /> {translateUI("Preview allocation")}</button>
           <div className="row">
-            <button className="btn" onClick={close}>Cancel</button>
-            <button className="btn primary" disabled={busy} onClick={submit}><Send size={13} /> Create {target !== "robots" && count > 1 ? `${count} tasks` : "task"}</button>
+            <button className="btn" onClick={close}>{translateUI("Cancel")}</button>
+            <button className="btn primary" disabled={busy} onClick={submit}><Send size={13} /> {translateUI("Create")}{" "}{target !== "robots" && count > 1 ? `${count} ${translateUI("tasks")}` : translateUI("task")}</button>
           </div>
         </>
       }
@@ -129,8 +130,8 @@ export function TaskComposer() {
         <div className="choice">
           {Object.entries(meta?.task_types ?? {}).map(([k, v]) => (
             <button key={k} className={type === k ? "on" : ""} onClick={() => { setType(k); setParams(k === "navigate" && preset.destination ? { destination: preset.destination } : {}); }}>
-              <span className="ct">{v.label}</span>
-              <span className="cd">{Object.keys(v.params).join(", ") || "no parameters"}</span>
+              <span className="ct">{translateUI(v.label)}</span>
+              <span className="cd">{Object.keys(v.params).map((k) => translateUI(titleCase(k))).join(", ") || translateUI("no parameters")}</span>
             </button>
           ))}
         </div>
@@ -141,7 +142,7 @@ export function TaskComposer() {
               if (p.type === "place[]") {
                 const list = (params[key] as string[] | undefined) ?? [];
                 return (
-                  <Field key={key} label="Waypoints (in order)">
+                  <Field key={key} label={translateUI("Waypoints (in order)")}>
                     <div className="chips">
                       {list.map((w, i) => (
                         <span key={i} className="chip on">{w}<X size={11} style={{ cursor: "pointer" }} onClick={() => setParams({ ...params, [key]: list.filter((_, j) => j !== i) })} /></span>
@@ -150,7 +151,7 @@ export function TaskComposer() {
                     <input
                       className="input"
                       list="nayantra-places"
-                      placeholder="add a waypoint and press Enter"
+                      placeholder={translateUI("add a waypoint and press Enter")}
                       onKeyDown={(e) => {
                         const v = (e.target as HTMLInputElement).value.trim();
                         if (e.key === "Enter" && v) {
@@ -164,31 +165,31 @@ export function TaskComposer() {
                 );
               }
               return (
-                <Field key={key} label={titleCase(key)}>
+                <Field key={key} label={translateUI(titleCase(key))}>
                   <input className="input" type={p.type === "string" ? "text" : "number"} value={String(params[key] ?? p.default ?? "")} onChange={(e) => setParams({ ...params, [key]: p.type === "string" ? e.target.value : Number(e.target.value) })} />
                 </Field>
               );
             })}
-          <Field label={`Priority — ${priority}`} hint="Higher priority wins traffic negotiations">
+          <Field label={`${translateUI("Priority")} — ${priority}`} hint={translateUI("Higher priority wins traffic negotiations")}>
             <input type="range" min={0} max={9} value={priority} onChange={(e) => setPriority(Number(e.target.value))} />
           </Field>
         </div>
-        <Field label="Who does it?">
+        <Field label={translateUI("Who does it?")}>
           <div className="chips">
-            <button className={`chip${target === "auto" ? " on" : ""}`} onClick={() => setTarget("auto")}>Let Nayantra choose</button>
-            <button className={`chip${target === "fleet" ? " on" : ""}`} onClick={() => setTarget("fleet")}>A specific fleet</button>
-            <button className={`chip${target === "robots" ? " on" : ""}`} onClick={() => setTarget("robots")}>Specific robots</button>
+            <button className={`chip${target === "auto" ? " on" : ""}`} onClick={() => setTarget("auto")}>{translateUI("Let Nayantra choose")}</button>
+            <button className={`chip${target === "fleet" ? " on" : ""}`} onClick={() => setTarget("fleet")}>{translateUI("A specific fleet")}</button>
+            <button className={`chip${target === "robots" ? " on" : ""}`} onClick={() => setTarget("robots")}>{translateUI("Specific robots")}</button>
           </div>
         </Field>
         {target === "auto" && (
-          <Field label="How many" hint="Each copy is allocated separately (e.g. three packages → three robots)">
+          <Field label={translateUI("How many")} hint={translateUI("Each copy is allocated separately (e.g. three packages → three robots)")}>
             <input className="input" type="number" min={1} max={20} value={count} onChange={(e) => setCount(Math.max(1, Math.min(20, Number(e.target.value))))} style={{ width: 90 }} />
           </Field>
         )}
         {target === "fleet" && (
-          <Field label="Fleet">
+          <Field label={translateUI("Fleet")}>
             <select className="input" value={fleetId} onChange={(e) => setFleetId(e.target.value)}>
-              <option value="">Choose…</option>
+              <option value="">{translateUI("Choose…")}</option>
               {Object.values(fleets).map((f) => (
                 <option key={f.id} value={f.id}>{f.name}</option>
               ))}
@@ -196,7 +197,7 @@ export function TaskComposer() {
           </Field>
         )}
         {target === "robots" && (
-          <Field label="Robots">
+          <Field label={translateUI("Robots")}>
             <div className="chips">
               {Object.values(robots).map((r) => (
                 <button key={r.id} className={`chip${robotIds.includes(r.id) ? " on" : ""}`} onClick={() => setRobotIds(robotIds.includes(r.id) ? robotIds.filter((x) => x !== r.id) : [...robotIds, r.id])}>
@@ -209,12 +210,12 @@ export function TaskComposer() {
         {error && <div className="reason" style={vars({ "--c": "#f87171" })}>{error}</div>}
         {preview && (
           <div className="reason" style={vars({ "--c": preview.allocation.selected ? "#34d399" : "#fbbf24" })}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>{preview.steps.map((s) => s.label).join(" → ")}</div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>{preview.steps.map((s) => translateUI(s.label)).join(" → ")}</div>
             <div>{preview.allocation.explanation}</div>
-            {preview.restricted.length > 0 && <div style={{ marginTop: 4, color: "var(--err)" }}>Restricted destination: {preview.restricted.join(", ")} — you'll be asked to confirm.</div>}
+            {preview.restricted.length > 0 && <div style={{ marginTop: 4, color: "var(--err)" }}>{translateUI("Restricted destination:")}{" "}{preview.restricted.join(", ")} {translateUI("— you'll be asked to confirm.")}</div>}
           </div>
         )}
-        {!map && <div className="faint"><Plus size={12} /> No active map.</div>}
+        {!map && <div className="faint"><Plus size={12} /> {translateUI("No active map.")}</div>}
       </div>
     </Modal>
   );

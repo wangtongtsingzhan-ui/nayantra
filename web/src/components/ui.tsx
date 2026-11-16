@@ -1,3 +1,4 @@
+import { translateUI } from "../lib/language";
 import { useEffect, type CSSProperties, type ReactNode } from "react";
 import { Bot, Dog, Plane, Truck, User, X } from "lucide-react";
 import type { RobotMode, RobotType, TaskStatus } from "../api/types";
@@ -10,27 +11,27 @@ export function ModeBadge({ mode }: { mode: RobotMode }) {
   return (
     <span className="badge" style={{ "--c": m.color } as Vars}>
       <span className={`dot${m.pulse ? " pulse" : ""}`} style={{ "--c": m.color } as Vars} />
-      {m.label}
+      {translateUI(m.label)}
     </span>
   );
 }
 
 export function StatusDot({ mode, title }: { mode: RobotMode; title?: string }) {
   const m = MODE_META[mode] ?? MODE_META.offline;
-  return <span title={title ?? m.label} className={`dot${m.pulse ? " pulse" : ""}`} style={{ "--c": m.color } as Vars} />;
+  return <span title={title ?? translateUI(m.label)} className={`dot${m.pulse ? " pulse" : ""}`} style={{ "--c": m.color } as Vars} />;
 }
 
 export function TaskBadge({ status }: { status: TaskStatus }) {
   const m = TASK_META[status] ?? TASK_META.queued;
   return (
     <span className="badge" style={{ "--c": m.color } as Vars}>
-      {m.label}
+      {translateUI(m.label)}
     </span>
   );
 }
 
 export function Battery({ value, charging }: { value: number | null; charging?: boolean }) {
-  if (value === null || value === undefined) return <span className="batt faint" title="battery not reported">—</span>;
+  if (value === null || value === undefined) return <span className="batt faint" title={translateUI("battery not reported")}>—</span>;
   return (
     <span className="batt" title={`${value.toFixed(1)}%${charging ? " · charging" : ""}`}>
       <i style={{ "--p": Math.max(0, Math.min(1, value / 100)), "--c": batteryColor(value) } as Vars} />
@@ -75,7 +76,7 @@ export function Modal({
       <div className={`modal ${size ?? ""}`} role="dialog" aria-modal="true">
         <div className="modal-head">
           <div className="modal-title">{title}</div>
-          <button className="btn ghost icon" onClick={onClose} aria-label="Close">
+          <button className="btn ghost icon" onClick={onClose} aria-label={translateUI("Close")}>
             <X size={16} />
           </button>
         </div>
@@ -89,7 +90,7 @@ export function Modal({
 export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
   return (
     <div className="field">
-      <label>{label}</label>
+      <label>{translateUI(label)}</label>
       {children}
       {hint && <div className="hint">{hint}</div>}
     </div>

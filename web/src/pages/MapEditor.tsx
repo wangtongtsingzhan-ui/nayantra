@@ -1,3 +1,4 @@
+import { translateUI } from "../lib/language";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, Hexagon, ImageUp, MapPinPlus, MousePointer2, Plus, Spline, Trash2 } from "lucide-react";
 import { api } from "../api/client";
@@ -141,7 +142,7 @@ export function MapEditorPage() {
     return (
       <div className="page">
         <Empty>
-          No map yet. <button className="btn primary" onClick={() => setNewMap(true)}><Plus size={13} /> Create a map</button>
+          {translateUI("No map yet.")}{" "}<button className="btn primary" onClick={() => setNewMap(true)}><Plus size={13} /> {translateUI("Create a map")}</button>
         </Empty>
         {newMap && <NewMapModal onClose={() => setNewMap(false)} />}
       </div>
@@ -153,7 +154,7 @@ export function MapEditorPage() {
       <div style={{ background: "var(--bg-2)", borderRight: "1px solid var(--line)" }}>
         <div className="editor-tools">
           {TOOLS.map((t) => (
-            <button key={t.id} className={`btn icon${tool === t.id ? " on" : ""}`} title={t.label} onClick={() => setTool(t.id)}>{t.icon}</button>
+            <button key={t.id} className={`btn icon${tool === t.id ? " on" : ""}`} title={translateUI(t.label)} onClick={() => setTool(t.id)}>{t.icon}</button>
           ))}
         </div>
       </div>
@@ -173,43 +174,41 @@ export function MapEditorPage() {
             <select className="input" style={{ height: 24, width: 200, border: 0, background: "transparent", padding: 0 }} value={map.id} onChange={(e) => setActiveMap(e.target.value)}>
               {Object.values(maps).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
-            <button className="btn ghost sm" onClick={() => setNewMap(true)}><Plus size={13} /> Map</button>
-            <button className="btn ghost sm" onClick={() => setUpload(true)}><ImageUp size={13} /> Image</button>
-            <a className="btn ghost sm" href={`/api/v1/maps/${map.id}/export/rmf-nav-graph`} download={`${map.id}_nav_graph.yaml`} title="Export in the rmf_fleet_adapter nav-graph layout"><Download size={13} /> RMF graph</a>
+            <button className="btn ghost sm" onClick={() => setNewMap(true)}><Plus size={13} /> {translateUI("Map")}</button>
+            <button className="btn ghost sm" onClick={() => setUpload(true)}><ImageUp size={13} /> {translateUI("Image")}</button>
+            <a className="btn ghost sm" href={`/api/v1/maps/${map.id}/export/rmf-nav-graph`} download={`${map.id}_nav_graph.yaml`} title={translateUI("Export in the rmf_fleet_adapter nav-graph layout")}><Download size={13} /> {translateUI("RMF graph")}</a>
           </div>
           <div className="map-chip glass" style={{ paddingRight: 10 }}>
-            <span className="muted">{TOOLS.find((t) => t.id === tool)?.hint}</span>
+            <span className="muted">{translateUI(TOOLS.find((t) => t.id === tool)?.hint ?? "")}</span>
           </div>
         </div>
         <div className="map-overlay" style={{ bottom: 10, left: 10 }}>
           <div className="glass row" style={{ padding: "6px 10px", gap: 10 }}>
             {tool === "waypoint" && (
-              <label className="row">Type
-                <select className="input" style={{ height: 24, width: 140 }} value={wpType} onChange={(e) => setWpType(e.target.value)}>
-                  {(meta?.waypoint_types ?? []).map((t) => <option key={t} value={t}>{titleCase(t)}</option>)}
+              <label className="row">{translateUI("Type")}{" "}<select className="input" style={{ height: 24, width: 140 }} value={wpType} onChange={(e) => setWpType(e.target.value)}>
+                  {(meta?.waypoint_types ?? []).map((t) => <option key={t} value={t}>{translateUI(titleCase(t))}</option>)}
                 </select>
               </label>
             )}
             {tool === "lane" && (
               <>
-                <label className="row"><input type="checkbox" className="cbx" checked={laneOpts.bidirectional} onChange={(e) => setLaneOpts({ ...laneOpts, bidirectional: e.target.checked })} /> Two-way</label>
-                <label className="row">Speed limit <input className="input" type="number" step="0.1" style={{ height: 24, width: 70 }} value={laneOpts.speed_limit || ""} placeholder="none" onChange={(e) => setLaneOpts({ ...laneOpts, speed_limit: Number(e.target.value) })} /> m/s</label>
-                {laneStart && <span style={{ color: "var(--accent-fg)" }}>from {map.waypoints.find((w) => w.id === laneStart)?.name} → click next</span>}
+                <label className="row"><input type="checkbox" className="cbx" checked={laneOpts.bidirectional} onChange={(e) => setLaneOpts({ ...laneOpts, bidirectional: e.target.checked })} /> {translateUI("Two-way")}</label>
+                <label className="row">{translateUI("Speed limit")}{" "}<input className="input" type="number" step="0.1" style={{ height: 24, width: 70 }} value={laneOpts.speed_limit || ""} placeholder={translateUI("none")} onChange={(e) => setLaneOpts({ ...laneOpts, speed_limit: Number(e.target.value) })} /> m/s</label>
+                {laneStart && <span style={{ color: "var(--accent-fg)" }}>{translateUI("from")}{" "}{map.waypoints.find((w) => w.id === laneStart)?.name} {translateUI("→ click next")}</span>}
               </>
             )}
             {tool === "zone" && (
               <>
-                <label className="row">Type
-                  <select className="input" style={{ height: 24, width: 150 }} value={zoneType} onChange={(e) => setZoneType(e.target.value)}>
-                    {(meta?.zone_types ?? []).map((t) => <option key={t} value={t}>{titleCase(t)}</option>)}
+                <label className="row">{translateUI("Type")}{" "}<select className="input" style={{ height: 24, width: 150 }} value={zoneType} onChange={(e) => setZoneType(e.target.value)}>
+                    {(meta?.zone_types ?? []).map((t) => <option key={t} value={t}>{translateUI(titleCase(t))}</option>)}
                   </select>
                 </label>
-                <span className="muted">{zoneDraft.length} corners</span>
-                {zoneDraft.length >= 3 && <button className="btn sm primary" onClick={() => void edit?.onZoneClose()}>Close polygon</button>}
+                <span className="muted">{zoneDraft.length} {translateUI("corners")}</span>
+                {zoneDraft.length >= 3 && <button className="btn sm primary" onClick={() => void edit?.onZoneClose()}>{translateUI("Close polygon")}</button>}
               </>
             )}
             {(tool === "select" || tool === "delete") && (
-              <span className="muted">{map.waypoints.length} waypoints · {map.lanes.length} lanes · {map.zones.length} zones</span>
+              <span className="muted">{map.waypoints.length} {translateUI("waypoints ·")}{" "}{map.lanes.length} {translateUI("lanes ·")}{" "}{map.zones.length} {translateUI("zones")}</span>
             )}
           </div>
         </div>
@@ -242,14 +241,14 @@ function Properties({ map, sel, onDelete, onSaved }: { map: MapDetail; sel: Edit
         <div className="insp-sec">
           <div className="kv">
             <span>ID</span><span className="mono">{map.id}</span>
-            <span>Bounds</span><span className="mono">{map.bounds.min_x}, {map.bounds.min_y} → {map.bounds.max_x}, {map.bounds.max_y} m</span>
-            <span>Waypoints</span><span>{map.waypoints.length}</span>
-            <span>Lanes</span><span>{map.lanes.length} ({map.lanes.filter((l) => !l.bidirectional).length} one-way, {map.lanes.filter((l) => l.layer === "air").length} air)</span>
-            <span>Zones</span><span>{map.zones.length}</span>
-            <span>Image</span><span>{map.image ? `${map.image.width_px}×${map.image.height_px} px @ ${map.image.resolution} m/px` : "none"}</span>
+            <span>{translateUI("Bounds")}</span><span className="mono">{map.bounds.min_x}, {map.bounds.min_y} → {map.bounds.max_x}, {map.bounds.max_y} m</span>
+            <span>{translateUI("Waypoints")}</span><span>{map.waypoints.length}</span>
+            <span>{translateUI("Lanes")}</span><span>{map.lanes.length} ({map.lanes.filter((l) => !l.bidirectional).length} {translateUI("one-way,")}{" "}{map.lanes.filter((l) => l.layer === "air").length} air)</span>
+            <span>{translateUI("Zones")}</span><span>{map.zones.length}</span>
+            <span>{translateUI("Image")}</span><span>{map.image ? `${map.image.width_px}×${map.image.height_px} px @ ${map.image.resolution} m/px` : translateUI("none")}</span>
           </div>
         </div>
-        <div className="insp-sec faint">Select an element to edit it. The graph you draw here is what fleet-level route planning and traffic coordination use.</div>
+        <div className="insp-sec faint">{translateUI("Select an element to edit it. The graph you draw here is what fleet-level route planning and traffic coordination use.")}</div>
       </div>
     );
   }
@@ -280,44 +279,44 @@ function Properties({ map, sel, onDelete, onSaved }: { map: MapDetail; sel: Edit
   return (
     <div>
       <div className="insp-head">
-        <div className="insp-title">{titleCase(sel.kind)}</div>
+        <div className="insp-title">{translateUI(titleCase(sel.kind))}</div>
         <div className="faint mono">{sel.id}</div>
       </div>
       <div className="insp-sec">
         {sel.kind === "waypoint" && (
           <>
             {text("name", "Name")}
-            <Field label="Type">
+            <Field label={translateUI("Type")}>
               <select className="input" value={String(draft.type)} onChange={(e) => setDraft({ ...draft, type: e.target.value })}>
-                {(meta?.waypoint_types ?? []).map((t) => <option key={t} value={t}>{titleCase(t)}</option>)}
+                {(meta?.waypoint_types ?? []).map((t) => <option key={t} value={t}>{translateUI(titleCase(t))}</option>)}
               </select>
             </Field>
             <div className="grid2">{num("x", "x (m)")}{num("y", "y (m)")}</div>
             <div className="grid2">
-              <Field label="Heading (°)"><input className="input" type="number" value={Math.round(((draft.yaw as number) ?? 0) * 180 / Math.PI)} onChange={(e) => setDraft({ ...draft, yaw: (Number(e.target.value) * Math.PI) / 180 })} /></Field>
+              <Field label={translateUI("Heading (°)")}><input className="input" type="number" value={Math.round(((draft.yaw as number) ?? 0) * 180 / Math.PI)} onChange={(e) => setDraft({ ...draft, yaw: (Number(e.target.value) * Math.PI) / 180 })} /></Field>
               {num("z", "z (m)")}
             </div>
-            <Field label="Layer">
+            <Field label={translateUI("Layer")}>
               <select className="input" value={String(draft.layer)} onChange={(e) => setDraft({ ...draft, layer: e.target.value })}>
-                <option value="ground">ground</option><option value="air">air</option>
+                <option value="ground">{translateUI("ground")}</option><option value="air">{translateUI("air")}</option>
               </select>
             </Field>
-            <Field label="Aliases" hint="Other names operators or the LLM may use, comma-separated">
+            <Field label={translateUI("Aliases")} hint={translateUI("Other names operators or the LLM may use, comma-separated")}>
               <input className="input" value={((draft.aliases as string[]) ?? []).join(", ")} onChange={(e) => setDraft({ ...draft, aliases: e.target.value.split(",").map((a) => a.trim()).filter(Boolean) })} />
             </Field>
           </>
         )}
         {sel.kind === "lane" && (
           <>
-            <div className="kv"><span>Connects</span><span>{(item as Lane).from_id} {(item as Lane).bidirectional ? "↔" : "→"} {(item as Lane).to_id}</span></div>
+            <div className="kv"><span>{translateUI("Connects")}</span><span>{(item as Lane).from_id} {(item as Lane).bidirectional ? "↔" : "→"} {(item as Lane).to_id}</span></div>
             {text("name", "Name")}
-            <label className="row"><input type="checkbox" className="cbx" checked={Boolean(draft.bidirectional)} onChange={(e) => setDraft({ ...draft, bidirectional: e.target.checked })} /> Two-way lane</label>
-            <label className="row"><input type="checkbox" className="cbx" checked={Boolean(draft.closed)} onChange={(e) => setDraft({ ...draft, closed: e.target.checked })} /> Closed (routing avoids it)</label>
+            <label className="row"><input type="checkbox" className="cbx" checked={Boolean(draft.bidirectional)} onChange={(e) => setDraft({ ...draft, bidirectional: e.target.checked })} /> {translateUI("Two-way lane")}</label>
+            <label className="row"><input type="checkbox" className="cbx" checked={Boolean(draft.closed)} onChange={(e) => setDraft({ ...draft, closed: e.target.checked })} /> {translateUI("Closed (routing avoids it)")}</label>
             <div className="grid2">{num("speed_limit", "Speed limit (m/s)")}{num("width", "Usable width (m)")}</div>
             <div className="grid2">
-              <Field label="Layer">
+              <Field label={translateUI("Layer")}>
                 <select className="input" value={String(draft.layer)} onChange={(e) => setDraft({ ...draft, layer: e.target.value })}>
-                  <option value="ground">ground</option><option value="air">air</option>
+                  <option value="ground">{translateUI("ground")}</option><option value="air">{translateUI("air")}</option>
                 </select>
               </Field>
               {num("altitude", "Altitude (m, air)", 1)}
@@ -327,13 +326,13 @@ function Properties({ map, sel, onDelete, onSaved }: { map: MapDetail; sel: Edit
         {sel.kind === "zone" && (
           <>
             {text("name", "Name")}
-            <Field label="Type">
+            <Field label={translateUI("Type")}>
               <select className="input" value={String(draft.type)} onChange={(e) => setDraft({ ...draft, type: e.target.value })}>
-                {(meta?.zone_types ?? []).map((t) => <option key={t} value={t}>{titleCase(t)}</option>)}
+                {(meta?.zone_types ?? []).map((t) => <option key={t} value={t}>{translateUI(titleCase(t))}</option>)}
               </select>
             </Field>
             {num("speed_limit", "Speed limit (m/s)")}
-            <Field label={draft.type === "fleet_boundary" ? "Fleets confined to this zone" : "Fleets allowed inside"}>
+            <Field label={draft.type === "fleet_boundary" ? translateUI("Fleets confined to this zone") : translateUI("Fleets allowed inside")}>
               <div className="chips">
                 {Object.values(fleets).map((f) => {
                   const list = (draft.allowed_fleets as string[]) ?? [];
@@ -349,8 +348,8 @@ function Properties({ map, sel, onDelete, onSaved }: { map: MapDetail; sel: Edit
           </>
         )}
         <div className="row" style={{ marginTop: 6 }}>
-          <button className="btn primary" onClick={save}>Save</button>
-          <button className="btn danger" onClick={() => onDelete(sel.kind, sel.id)}><Trash2 size={13} /> Delete</button>
+          <button className="btn primary" onClick={save}>{translateUI("Save")}</button>
+          <button className="btn danger" onClick={() => onDelete(sel.kind, sel.id)}><Trash2 size={13} /> {translateUI("Delete")}</button>
         </div>
       </div>
     </div>
@@ -374,13 +373,13 @@ function NewMapModal({ onClose }: { onClose: () => void }) {
     <Field label={label}><input className="input" type="number" value={f[k] as number} onChange={(e) => setF({ ...f, [k]: Number(e.target.value) })} /></Field>
   );
   return (
-    <Modal size="sm" title="New map" onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{err}</span><button className="btn primary" onClick={save}>Create map</button></>}>
+    <Modal size="sm" title={translateUI("New map")} onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{err}</span><button className="btn primary" onClick={save}>{translateUI("Create map")}</button></>}>
       <div className="col" style={{ gap: 10 }}>
-        <Field label="Name"><input className="input" autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
-        <Field label="Description"><input className="input" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
-        <div className="section-title">Workspace bounds (metres)</div>
+        <Field label={translateUI("Name")}><input className="input" autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
+        <Field label={translateUI("Description")}><input className="input" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
+        <div className="section-title">{translateUI("Workspace bounds (metres)")}</div>
         <div className="grid2">{n("min_x", "min x")}{n("min_y", "min y")}{n("max_x", "max x")}{n("max_y", "max y")}</div>
-        <div className="faint">Goals outside the bounds are rejected (workspace hard limit).</div>
+        <div className="faint">{translateUI("Goals outside the bounds are rejected (workspace hard limit).")}</div>
       </div>
     </Modal>
   );
@@ -466,16 +465,16 @@ function UploadImage({ map, onClose }: { map: MapDetail; onClose: () => void }) 
     }
   };
   return (
-    <Modal size="sm" title={`Map image — ${map.name}`} onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{err}</span><button className="btn primary" onClick={save}>Upload</button></>}>
+    <Modal size="sm" title={`Map image — ${map.name}`} onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{err}</span><button className="btn primary" onClick={save}>{translateUI("Upload")}</button></>}>
       <div className="col" style={{ gap: 10 }}>
-        <Field label="Image" hint="PNG / JPEG, or a Nav2 map_server .pgm (add its .yaml to fill resolution and origin)">
+        <Field label={translateUI("Image")} hint={translateUI("PNG / JPEG, or a Nav2 map_server .pgm (add its .yaml to fill resolution and origin)")}>
           <input type="file" accept=".png,.jpg,.jpeg,.webp,.pgm,.yaml,.yml" multiple onChange={(e) => Array.from(e.target.files ?? []).forEach((f) => void pick(f))} />
         </Field>
         {file && <div className="faint">{file.w} × {file.h} px → {(file.w * res).toFixed(1)} × {(file.h * res).toFixed(1)} m</div>}
         <div className="grid3">
-          <Field label="Resolution (m/px)"><input className="input" type="number" step="0.005" value={res} onChange={(e) => setRes(Number(e.target.value))} /></Field>
-          <Field label="Origin x"><input className="input" type="number" value={origin[0]} onChange={(e) => setOrigin([Number(e.target.value), origin[1]])} /></Field>
-          <Field label="Origin y"><input className="input" type="number" value={origin[1]} onChange={(e) => setOrigin([origin[0], Number(e.target.value)])} /></Field>
+          <Field label={translateUI("Resolution (m/px)")}><input className="input" type="number" step="0.005" value={res} onChange={(e) => setRes(Number(e.target.value))} /></Field>
+          <Field label={translateUI("Origin x")}><input className="input" type="number" value={origin[0]} onChange={(e) => setOrigin([Number(e.target.value), origin[1]])} /></Field>
+          <Field label={translateUI("Origin y")}><input className="input" type="number" value={origin[1]} onChange={(e) => setOrigin([origin[0], Number(e.target.value)])} /></Field>
         </div>
         <Field label={`Opacity — ${Math.round(opacity * 100)}%`}><input type="range" min={0.1} max={1} step={0.05} value={opacity} onChange={(e) => setOpacity(Number(e.target.value))} /></Field>
       </div>

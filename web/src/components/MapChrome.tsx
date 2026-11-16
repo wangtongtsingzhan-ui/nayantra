@@ -1,3 +1,4 @@
+import { translateUI } from "../lib/language";
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Layers, Maximize, Minus, Plus, TriangleAlert } from "lucide-react";
 import type { Point2 } from "../api/types";
@@ -44,34 +45,34 @@ export function MapChrome({ control, cursor, pxPerM }: { control: React.MutableR
     <>
       <div className="map-overlay map-tl" ref={pop}>
         <div className="map-chip glass">
-          <select className="input" style={{ height: 24, width: 190, border: 0, background: "transparent", padding: 0 }} value={activeMapId ?? ""} onChange={(e) => setActiveMap(e.target.value)} aria-label="Map">
+          <select className="input" style={{ height: 24, width: 190, border: 0, background: "transparent", padding: 0 }} value={activeMapId ?? ""} onChange={(e) => setActiveMap(e.target.value)} aria-label={translateUI("Map")}>
             {Object.values(maps).map((m) => (
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
-          <button className="btn ghost sm icon" onClick={() => setOpen(!open)} title="Layers" aria-label="Layers"><Layers size={14} /></button>
+          <button className="btn ghost sm icon" onClick={() => setOpen(!open)} title={translateUI("Layers")} aria-label={translateUI("Layers")}><Layers size={14} /></button>
         </div>
         {open && (
           <div className="layers-pop glass">
             {(Object.keys(LAYER_LABEL) as LayerKey[]).map((k) => (
               <label key={k}>
-                <input type="checkbox" className="cbx" checked={layers[k]} onChange={() => toggleLayer(k)} /> {LAYER_LABEL[k]}
+                <input type="checkbox" className="cbx" checked={layers[k]} onChange={() => toggleLayer(k)} /> {translateUI(LAYER_LABEL[k])}
               </label>
             ))}
           </div>
         )}
         {goTo && (
           <div className="map-chip glass" style={{ paddingRight: 10, borderColor: "var(--accent)" }}>
-            <span style={{ color: "var(--accent-fg)", fontWeight: 600 }}>Go-to mode</span>
-            <span className="muted">click a waypoint · Esc to cancel</span>
+            <span style={{ color: "var(--accent-fg)", fontWeight: 600 }}>{translateUI("Go-to mode")}</span>
+            <span className="muted">{translateUI("click a waypoint · Esc to cancel")}</span>
           </div>
         )}
       </div>
       <div className="map-overlay map-br">
         <div className="glass col" style={{ gap: 0, padding: 2 }}>
-          <button className="btn ghost icon" onClick={() => control.current?.zoom(0.75)} title="Zoom in (+)"><Plus size={15} /></button>
-          <button className="btn ghost icon" onClick={() => control.current?.zoom(1.33)} title="Zoom out (−)"><Minus size={15} /></button>
-          <button className="btn ghost icon" onClick={() => control.current?.fit()} title="Fit to view (F)"><Maximize size={14} /></button>
+          <button className="btn ghost icon" onClick={() => control.current?.zoom(0.75)} title={translateUI("Zoom in (+)")}><Plus size={15} /></button>
+          <button className="btn ghost icon" onClick={() => control.current?.zoom(1.33)} title={translateUI("Zoom out (−)")}><Minus size={15} /></button>
+          <button className="btn ghost icon" onClick={() => control.current?.fit()} title={translateUI("Fit to view (F)")}><Maximize size={14} /></button>
         </div>
       </div>
       <div className="map-overlay map-bl">
@@ -106,17 +107,17 @@ export function ConflictFlashes() {
         const resolved = now - at > 900;
         return (
           <div key={c.id} className="flash glass">
-            <div className="t"><TriangleAlert size={13} /> Potential {c.kind.replace("_", "-")} conflict</div>
+            <div className="t"><TriangleAlert size={13} /> {translateUI("Potential")}{" "}{c.kind.replace("_", "-")} {translateUI("conflict")}</div>
             <div className="l">
               <span>{c.robots.map(name).join("  ⇄  ")}</span>
               <span className="muted">→ {c.location_name}</span>
             </div>
             {!resolved ? (
-              <div className="l muted">Resolving…</div>
+              <div className="l muted">{translateUI("Resolving…")}</div>
             ) : (
               <>
                 <div className="l ok"><CheckCircle2 size={12} /> {c.resolution?.message ?? "resolved"}</div>
-                <div className="l ok"><CheckCircle2 size={12} /> Route reservations updated · no collision</div>
+                <div className="l ok"><CheckCircle2 size={12} /> {translateUI("Route reservations updated · no collision")}</div>
               </>
             )}
           </div>

@@ -1,4 +1,6 @@
+import { translateUI } from "../lib/language";
 import { useMemo, useState } from "react";
+import { useLanguage } from "../lib/language";
 import { ChevronDown, ChevronRight, Pause, Play, Plus, RotateCcw, Square } from "lucide-react";
 import { api } from "../api/client";
 import type { RobotState } from "../api/types";
@@ -7,6 +9,7 @@ import { MODE_META, errMsg } from "../lib/format";
 import { Battery, RobotTypeIcon, StatusDot, vars } from "./ui";
 
 export function FleetSidebar() {
+  const [zh] = useLanguage();
   const fleets = useWorld((s) => s.fleets);
   const robots = useWorld((s) => s.robots);
   const states = useWorld((s) => s.states);
@@ -26,9 +29,9 @@ export function FleetSidebar() {
   return (
     <aside className="side">
       <div className="side-head">
-        <span className="section-title">Fleets</span>
-        <button className="btn sm" onClick={() => openWizard(true)} title="Register a robot">
-          <Plus size={13} /> Robot
+        <span className="section-title">{zh ? "车队" : translateUI("Fleets")}</span>
+        <button className="btn sm" onClick={() => openWizard(true)} title={translateUI("Register a robot")}>
+          <Plus size={13} /> {zh ? "添加机器人" : translateUI("Robot")}
         </button>
       </div>
       <div className="side-scroll">
@@ -46,13 +49,13 @@ export function FleetSidebar() {
                 <div className="grow">
                   <div className="fleet-name ellipsis">{f.name}</div>
                   <div className="fleet-meta">
-                    {ids.length} robots · {online} online · {busy} busy
+                    {zh ? `${ids.length} 台机器人 · ${online} 在线 · ${busy} 忙碌` : `${ids.length} robots · ${online} online · ${busy} busy`}
                   </div>
                 </div>
                 <input
                   type="checkbox"
                   className="cbx"
-                  title="Select the whole fleet"
+                  title={translateUI("Select the whole fleet")}
                   checked={allSel}
                   onClick={(e) => e.stopPropagation()}
                   onChange={() =>
@@ -71,7 +74,7 @@ export function FleetSidebar() {
                       key={id}
                       className={`robot-row${sel ? " sel" : ""}`}
                       onClick={(e) => selectRobot(id, e.shiftKey || e.ctrlKey || e.metaKey)}
-                      title={st?.status_reason || MODE_META[mode].label}
+                      title={translateUI(st?.status_reason || MODE_META[mode].label)}
                     >
                       <StatusDot mode={mode} />
                       <div style={{ minWidth: 0 }}>
@@ -83,7 +86,7 @@ export function FleetSidebar() {
                         </div>
                         <div className="rsub ellipsis">
                           {st?.current_task_id ? `${st.current_task_id} · ` : ""}
-                          {st?.status_reason || MODE_META[mode].label}
+                          {translateUI(st?.status_reason || MODE_META[mode].label)}
                         </div>
                       </div>
                       <Battery value={st?.battery_pct ?? null} charging={st?.charging} />
@@ -93,7 +96,7 @@ export function FleetSidebar() {
             </div>
           );
         })}
-        {Object.keys(fleets).length === 0 && <div className="empty">No fleets yet. Register a robot to create one.</div>}
+        {Object.keys(fleets).length === 0 && <div className="empty">{zh ? "暂无车队，请先添加机器人。" : "No fleets yet. Register a robot to create one."}</div>}
       </div>
       <SimControls />
     </aside>
@@ -101,6 +104,7 @@ export function FleetSidebar() {
 }
 
 function SimControls() {
+  const [zh] = useLanguage();
   const sim = useWorld((s) => s.sim);
   const toast = useWorld((s) => s.toast);
   // These controls drive the core's built-in simulator only. With no robots on it (Gazebo,
@@ -117,29 +121,29 @@ function SimControls() {
   return (
     <div className="sim-box">
       <div className="row between">
-        <span className="section-title">Simulation</span>
+        <span className="section-title">{zh ? "模拟运行" : "Simulation"}</span>
         <span className="badge" style={vars({ "--c": sim.running ? "#34d399" : "#fbbf24" })}>
           <span className={`dot${sim.running ? " pulse" : ""}`} style={vars({ "--c": sim.running ? "#34d399" : "#fbbf24" })} />
-          {sim.running ? "Running" : "Paused"}
+          {sim.running ? (zh ? "运行中" : "Running") : (zh ? "已暂停" : translateUI("Paused"))}
         </span>
       </div>
       <div className="faint" style={{ fontSize: 11.5 }}>
-        {sim.environment} · {sim.robots.length} simulated robots · t={Math.round(sim.sim_time_s)} s
+        {sim.environment} · {sim.robots.length} {zh ? "台模拟机器人" : translateUI("simulated robots")} · t={Math.round(sim.sim_time_s)} s
       </div>
       <div className="row">
         {sim.running ? (
-          <button className="btn sm" onClick={() => act("/sim/pause", "Simulation paused")} title="Pause">
-            <Pause size={13} /> Pause
+          <button className="btn sm" onClick={() => act("/sim/pause", "Simulation paused")} title={translateUI("Pause")}>
+            <Pause size={13} /> {zh ? "暂停" : translateUI("Pause")}
           </button>
         ) : (
-          <button className="btn sm" onClick={() => act("/sim/start", "Simulation running")} title="Start">
-            <Play size={13} /> Start
+          <button className="btn sm" onClick={() => act("/sim/start", "Simulation running")} title={translateUI("Start")}>
+            <Play size={13} /> {zh ? "开始" : translateUI("Start")}
           </button>
         )}
-        <button className="btn sm" onClick={() => act("/sim/stop", "Simulation stopped and reset")} title="Stop: cancel sim tasks, return robots to spawn, pause">
-          <Square size={12} /> Stop
+        <button className="btn sm" onClick={() => act("/sim/stop", "Simulation stopped and reset")} title={translateUI("Stop: cancel sim tasks, return robots to spawn, pause")}>
+          <Square size={12} /> {zh ? "停止" : translateUI("Stop")}
         </button>
-        <button className="btn sm icon" onClick={() => act("/sim/reset", "Robots returned to spawn")} title="Reset robots to spawn and keep running">
+        <button className="btn sm icon" onClick={() => act("/sim/reset", "Robots returned to spawn")} title={translateUI("Reset robots to spawn and keep running")}>
           <RotateCcw size={13} />
         </button>
         <select
@@ -147,7 +151,7 @@ function SimControls() {
           style={{ height: 24, width: 64, padding: "0 4px" }}
           value={sim.speed}
           onChange={(e) => api.patch("/sim", { speed: Number(e.target.value) }).catch((err) => toast("error", errMsg(err)))}
-          title="Simulation speed"
+          title={translateUI("Simulation speed")}
         >
           {[0.5, 1, 2, 4, 8].map((v) => (
             <option key={v} value={v}>

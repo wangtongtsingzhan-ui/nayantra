@@ -1,4 +1,6 @@
+import { translateUI } from "./lib/language";
 import { useEffect } from "react";
+import { useLanguage } from "./lib/language";
 import { SystemTab } from "./components/BottomDock";
 import { RegisterWizard } from "./components/RegisterWizard";
 import { ConfirmDialog, Toasts, TopBar } from "./components/Shell";
@@ -12,6 +14,7 @@ import { connectWorld } from "./store/ws";
 import { type Page, useWorld } from "./store/world";
 
 export default function App() {
+  useLanguage();
   const page = useWorld((s) => s.page);
   const theme = useWorld((s) => s.theme);
   const wizardOpen = useWorld((s) => s.wizardOpen);
@@ -45,7 +48,7 @@ export default function App() {
         {page === "map" && <MapEditorPage />}
         {page === "system" && (
           <div className="page">
-            <h1 style={{ marginBottom: 14 }}>System health</h1>
+            <h1 style={{ marginBottom: 14 }}>{translateUI("System health")}</h1>
             <div className="panel"><SystemTab /></div>
           </div>
         )}

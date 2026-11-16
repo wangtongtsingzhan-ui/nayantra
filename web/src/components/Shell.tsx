@@ -1,4 +1,6 @@
+import { translateUI } from "../lib/language";
 import { useState } from "react";
+import { useLanguage } from "../lib/language";
 import {
   AlertTriangle, Bot, CheckCircle2, CircleAlert, Info, LayoutDashboard, ListChecks, Map as MapIcon, Moon, OctagonX,
   Server, ShieldAlert, Sun, Users,
@@ -19,6 +21,7 @@ const PAGES: { id: Page; label: string; icon: React.ReactNode }[] = [
 ];
 
 export function TopBar() {
+  const [zh, setZh] = useLanguage();
   const page = useWorld((s) => s.page);
   const setPage = useWorld((s) => s.setPage);
   const connected = useWorld((s) => s.connected);
@@ -34,27 +37,28 @@ export function TopBar() {
       <nav className="nav">
         {PAGES.map((p) => (
           <button key={p.id} className={page === p.id ? "active" : ""} onClick={() => setPage(p.id)}>
-            {p.icon} {p.label}
+            {p.icon} {zh ? ({ operations: "调度", fleets: "车队", robots: "机器人", tasks: "任务", map: "地图编辑", system: "系统" } as Record<Page, string>)[p.id] : p.label}
           </button>
         ))}
       </nav>
       <div className="spacer" />
       {active.length > 0 && (
         <span className="badge" style={vars({ "--c": critical ? "#f87171" : "#fbbf24" })} title={active.map((a) => a.title).join("\n")}>
-          <AlertTriangle size={12} /> {active.length} alert{active.length > 1 ? "s" : ""}
+          <AlertTriangle size={12} /> {active.length} {translateUI("alert")}{!zh && active.length > 1 ? "s" : ""}
         </span>
       )}
       <span className="conn">
         <span className={`dot${connected ? "" : " pulse"}`} style={vars({ "--c": connected ? "#34d399" : "#f87171" })} />
-        {connected ? "Live" : "Reconnecting…"}
+        {connected ? (zh ? "已连接" : "Live") : (zh ? "重新连接中…" : "Reconnecting…")}
       </span>
+      <button type="button" className="btn sm" onClick={() => setZh(!zh)} title="切换语言 / Switch language">{zh ? "English" : "中文"}</button>
       <button
         type="button"
         role="switch"
         aria-checked={theme === "dark"}
-        aria-label="Dark mode"
+        aria-label={translateUI("Dark mode")}
         className="theme-switch"
-        title={theme === "dark" ? "Dark mode — switch to light" : "Light mode — switch to dark"}
+        title={theme === "dark" ? translateUI("Dark mode — switch to light") : translateUI("Light mode — switch to dark")}
         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       >
         <span className="knob" />
@@ -63,7 +67,7 @@ export function TopBar() {
       </button>
       <button
         className="estop small"
-        title="Emergency-stop every robot (asks for confirmation)"
+        title={translateUI("Emergency-stop every robot (asks for confirmation)")}
         onClick={async () => {
           try {
             const r = await api.post("/robots/estop-all", { reason: "Global E-STOP from the top bar" });
@@ -73,7 +77,7 @@ export function TopBar() {
           }
         }}
       >
-        <OctagonX size={14} /> E-STOP ALL
+        <OctagonX size={14} /> {zh ? "全部急停" : translateUI("E-STOP ALL")}
       </button>
     </header>
   );
@@ -81,6 +85,7 @@ export function TopBar() {
 
 /** Every dangerous action (from the UI or the LLM) lands here for an explicit decision. */
 export function ConfirmDialog() {
+  const [zh] = useLanguage();
   const confirmations = useWorld((s) => s.confirmations);
   const toast = useWorld((s) => s.toast);
   const [busy, setBusy] = useState(false);
@@ -108,30 +113,29 @@ export function ConfirmDialog() {
   return (
     <Modal
       size="sm"
-      title={<span className="row"><ShieldAlert size={16} style={{ color: "var(--warn)" }} /> Confirmation required</span>}
+      title={<span className="row"><ShieldAlert size={16} style={{ color: "var(--warn)" }} /> {translateUI("Confirmation required")}</span>}
       onClose={() => void decide(false)}
       footer={
         <>
-          <span className="faint" style={{ fontSize: 12 }}>{pending.length > 1 ? `${pending.length - 1} more waiting` : `expires ${ago(c.expires_at).replace(" ago", "")}`}</span>
+          <span className="faint" style={{ fontSize: 12 }}>{pending.length > 1 ? zh ? `另有 ${pending.length - 1} 项待确认` : `${pending.length - 1} more waiting` : zh ? `有效期至 ${new Date(c.expires_at * 1000).toLocaleTimeString("zh-CN")}` : `expires ${ago(c.expires_at).replace(" ago", "")}`}</span>
           <div className="row">
-            <button className="btn" disabled={busy} onClick={() => void decide(false)}>Cancel</button>
+            <button className="btn" disabled={busy} onClick={() => void decide(false)}>{translateUI("Cancel")}</button>
             {estop ? (
-              <button className="estop" disabled={busy} onClick={() => void decide(true)}><OctagonX size={14} /> Confirm</button>
+              <button className="estop" disabled={busy} onClick={() => void decide(true)}><OctagonX size={14} /> {translateUI("Confirm")}</button>
             ) : (
-              <button className="btn primary" disabled={busy} onClick={() => void decide(true)}>Confirm</button>
+              <button className="btn primary" disabled={busy} onClick={() => void decide(true)}>{translateUI("Confirm")}</button>
             )}
           </div>
         </>
       }
     >
       <div className="col" style={{ gap: 10 }}>
-        <div style={{ fontSize: 15, fontWeight: 600 }}>{c.summary}</div>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>{translateUI(c.summary)}</div>
         {c.detail && <div className="muted">{c.detail}</div>}
         <div className="reason" style={vars({ "--c": fromLLM ? "#a78bfa" : "#60a5fa" })}>
-          Requested by <b>{fromLLM ? "the AI agent" : c.requested_by}</b>
-          {c.trace?.command ? <> for the command “{c.trace.command}”</> : null}
-          {c.trace?.tool ? <> via tool <span className="mono">{c.trace.tool}</span></> : null}. Nothing happens unless you confirm.
-        </div>
+          {translateUI("Requested by")}{" "}<b>{fromLLM ? translateUI("the AI agent") : c.requested_by}</b>
+          {c.trace?.command ? <> {translateUI("for the command “")}{c.trace.command}”</> : null}
+          {c.trace?.tool ? <> {translateUI("via tool")}{" "}<span className="mono">{c.trace.tool}</span></> : null}{translateUI(". Nothing happens unless you confirm.")}{" "}</div>
       </div>
     </Modal>
   );

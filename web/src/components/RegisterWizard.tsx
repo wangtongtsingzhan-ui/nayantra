@@ -1,3 +1,4 @@
+import { translateUI } from "../lib/language";
 import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleAlert, CircleDashed, MapPin, Plus } from "lucide-react";
 import { api } from "../api/client";
@@ -187,16 +188,16 @@ export function RegisterWizard() {
         return (
           <div className="col" style={{ gap: 12 }}>
             <div className="grid2">
-              <Field label="Robot name"><input className="input" autoFocus value={name} placeholder="UGV-05" onChange={(e) => { setName(e.target.value); if (!idTouched) setId(slug(e.target.value)); }} /></Field>
-              <Field label="Robot ID" hint="Used in APIs and logs"><input className="input mono" value={id} onChange={(e) => { setId(e.target.value); setIdTouched(true); }} /></Field>
-              <Field label="Manufacturer"><input className="input" value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} /></Field>
-              <Field label="Model"><input className="input" value={model} onChange={(e) => setModel(e.target.value)} /></Field>
+              <Field label={translateUI("Robot name")}><input className="input" autoFocus value={name} placeholder="UGV-05" onChange={(e) => { setName(e.target.value); if (!idTouched) setId(slug(e.target.value)); }} /></Field>
+              <Field label={translateUI("Robot ID")} hint={translateUI("Used in APIs and logs")}><input className="input mono" value={id} onChange={(e) => { setId(e.target.value); setIdTouched(true); }} /></Field>
+              <Field label={translateUI("Manufacturer")}><input className="input" value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} /></Field>
+              <Field label={translateUI("Model")}><input className="input" value={model} onChange={(e) => setModel(e.target.value)} /></Field>
             </div>
-            <Field label="Robot type">
+            <Field label={translateUI("Robot type")}>
               <div className="choice">
                 {(meta?.robot_types ?? ["ugv", "uav", "quadruped", "humanoid", "other"]).map((t) => (
                   <button key={t} className={type === t ? "on" : ""} onClick={() => pickType(t)}>
-                    <span className="ct row" style={{ gap: 6 }}><RobotTypeIcon type={t} size={15} /> {ROBOT_TYPE_LABEL[t]}</span>
+                    <span className="ct row" style={{ gap: 6 }}><RobotTypeIcon type={t} size={15} /> {translateUI(ROBOT_TYPE_LABEL[t])}</span>
                     <span className="cd">{TYPE_DESC[t]}</span>
                   </button>
                 ))}
@@ -207,10 +208,10 @@ export function RegisterWizard() {
       case 1:
         return (
           <div className="col" style={{ gap: 12 }}>
-            <div className="muted">Which fleet should this {ROBOT_TYPE_LABEL[type]} belong to?</div>
+            <div className="muted">{translateUI("Which fleet should this")}{" "}{translateUI(ROBOT_TYPE_LABEL[type])} {translateUI("belong to?")}</div>
             <div className="chips">
-              <button className={`chip${fleetMode === "existing" ? " on" : ""}`} onClick={() => setFleetMode("existing")}>Existing fleet</button>
-              <button className={`chip${fleetMode === "new" ? " on" : ""}`} onClick={() => setFleetMode("new")}><Plus size={12} /> Create new fleet</button>
+              <button className={`chip${fleetMode === "existing" ? " on" : ""}`} onClick={() => setFleetMode("existing")}>{translateUI("Existing fleet")}</button>
+              <button className={`chip${fleetMode === "new" ? " on" : ""}`} onClick={() => setFleetMode("new")}><Plus size={12} /> {translateUI("Create new fleet")}</button>
             </div>
             {fleetMode === "existing" ? (
               compatibleFleets.length ? (
@@ -218,17 +219,17 @@ export function RegisterWizard() {
                   {compatibleFleets.map((f) => (
                     <button key={f.id} className={fleetId === f.id ? "on" : ""} onClick={() => setFleetId(f.id)}>
                       <span className="ct row" style={{ gap: 7 }}><span className="fleet-swatch" style={vars({ "--c": f.color })} />{f.name}</span>
-                      <span className="cd">{f.robots.length} robots · {f.capabilities.slice(0, 4).join(", ")}</span>
+                      <span className="cd">{f.robots.length} {translateUI("robots ·")}{" "}{f.capabilities.slice(0, 4).join(", ")}</span>
                     </button>
                   ))}
                 </div>
-              ) : <div className="faint">No {ROBOT_TYPE_LABEL[type]} fleet yet — create one.</div>
+              ) : <div className="faint">{translateUI("No")}{" "}{translateUI(ROBOT_TYPE_LABEL[type])} {translateUI("fleet yet — create one.")}</div>
             ) : (
               <div className="grid2">
-                <Field label="Fleet name"><input className="input" value={newFleet.name} placeholder="Night-shift UGVs" onChange={(e) => setNewFleet({ ...newFleet, name: e.target.value })} /></Field>
-                <Field label="Speed limit (m/s)"><input className="input" type="number" step="0.1" value={newFleet.max_speed} onChange={(e) => setNewFleet({ ...newFleet, max_speed: Number(e.target.value) })} /></Field>
-                <Field label="Traffic priority (0–9)"><input className="input" type="number" min={0} max={9} value={newFleet.priority} onChange={(e) => setNewFleet({ ...newFleet, priority: Number(e.target.value) })} /></Field>
-                <Field label="Colour">
+                <Field label={translateUI("Fleet name")}><input className="input" value={newFleet.name} placeholder={translateUI("Night-shift UGVs")} onChange={(e) => setNewFleet({ ...newFleet, name: e.target.value })} /></Field>
+                <Field label={translateUI("Speed limit (m/s)")}><input className="input" type="number" step="0.1" value={newFleet.max_speed} onChange={(e) => setNewFleet({ ...newFleet, max_speed: Number(e.target.value) })} /></Field>
+                <Field label={translateUI("Traffic priority (0–9)")}><input className="input" type="number" min={0} max={9} value={newFleet.priority} onChange={(e) => setNewFleet({ ...newFleet, priority: Number(e.target.value) })} /></Field>
+                <Field label={translateUI("Colour")}>
                   <div className="chips">
                     {COLORS.map((c) => (
                       <button key={c} className={`chip${newFleet.color === c ? " on" : ""}`} style={{ width: 26, padding: 0, justifyContent: "center" }} onClick={() => setNewFleet({ ...newFleet, color: c })}>
@@ -237,7 +238,7 @@ export function RegisterWizard() {
                     ))}
                   </div>
                 </Field>
-                <label className="row" style={{ gap: 8 }}><input type="checkbox" className="cbx" checked={newFleet.charging_required} onChange={(e) => setNewFleet({ ...newFleet, charging_required: e.target.checked })} /> Auto-charge when battery runs low</label>
+                <label className="row" style={{ gap: 8 }}><input type="checkbox" className="cbx" checked={newFleet.charging_required} onChange={(e) => setNewFleet({ ...newFleet, charging_required: e.target.checked })} /> {translateUI("Auto-charge when battery runs low")}</label>
               </div>
             )}
           </div>
@@ -245,18 +246,18 @@ export function RegisterWizard() {
       case 2:
         return (
           <div className="col" style={{ gap: 12 }}>
-            <div className="muted">What can this robot do? Tasks are allocated by capability, never by robot type.</div>
+            <div className="muted">{translateUI("What can this robot do? Tasks are allocated by capability, never by robot type.")}</div>
             <div className="chips">
               {Object.entries(meta?.capabilities ?? {}).map(([k, v]) => (
                 <button key={k} className={`chip${caps.includes(k) ? " on" : ""}`} onClick={() => setCaps(caps.includes(k) ? caps.filter((c) => c !== k) : [...caps, k])}>{v}</button>
               ))}
               {caps.filter((c) => !meta?.capabilities[c]).map((c) => (
-                <button key={c} className="chip on" onClick={() => setCaps(caps.filter((x) => x !== c))}>{titleCase(c)}</button>
+                <button key={c} className="chip on" onClick={() => setCaps(caps.filter((x) => x !== c))}>{translateUI(titleCase(c))}</button>
               ))}
             </div>
             <div className="row">
-              <input className="input" style={{ width: 220 }} placeholder="Other capability…" value={customCap} onChange={(e) => setCustomCap(e.target.value)} />
-              <button className="btn" onClick={() => { if (customCap.trim()) { setCaps([...caps, slug(customCap)]); setCustomCap(""); } }}>Add</button>
+              <input className="input" style={{ width: 220 }} placeholder={translateUI("Other capability…")} value={customCap} onChange={(e) => setCustomCap(e.target.value)} />
+              <button className="btn" onClick={() => { if (customCap.trim()) { setCaps([...caps, slug(customCap)]); setCustomCap(""); } }}>{translateUI("Add")}</button>
             </div>
           </div>
         );
@@ -264,34 +265,34 @@ export function RegisterWizard() {
         return (
           <div className="col" style={{ gap: 12 }}>
             <div className="grid2">
-              <Field label="Map">
+              <Field label={translateUI("Map")}>
                 <select className="input" value={nav.map_id} onChange={(e) => setNav({ ...nav, map_id: e.target.value })}>
-                  <option value="">Choose…</option>
+                  <option value="">{translateUI("Choose…")}</option>
                   {mapChoices.map((m) => <option key={m} value={m}>{maps[m]?.name ?? m}</option>)}
                 </select>
               </Field>
-              <Field label="Navigation stack">
+              <Field label={translateUI("Navigation stack")}>
                 <select className="input" value={nav.stack} onChange={(e) => setNav({ ...nav, stack: e.target.value })}>
-                  {(meta?.nav_stacks ?? []).map((s) => <option key={s} value={s}>{s === "kinematic_sim" ? "Kinematic simulator" : s}</option>)}
+                  {(meta?.nav_stacks ?? []).map((s) => <option key={s} value={s}>{s === "kinematic_sim" ? translateUI("Kinematic simulator") : s}</option>)}
                 </select>
               </Field>
-              <Field label="Localization">
+              <Field label={translateUI("Localization")}>
                 <select className="input" value={nav.localization} onChange={(e) => setNav({ ...nav, localization: e.target.value })}>
                   {(meta?.localization ?? []).map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </Field>
-              <Field label="ROS 2 namespace" hint="Topics become <ns>/odom, <ns>/navigate_to_pose">
+              <Field label={translateUI("ROS 2 namespace")} hint={translateUI("Topics become <ns>/odom, <ns>/navigate_to_pose")}>
                 <input className="input mono" placeholder={`/${id || slug(name) || "robot_01"}`} value={nav.namespace} onChange={(e) => setNav({ ...nav, namespace: e.target.value })} />
               </Field>
             </div>
-            <button className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => setAdvanced(!advanced)}>{advanced ? "Hide" : "Show"} frames &amp; sensors</button>
+            <button className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => setAdvanced(!advanced)}>{advanced ? "Hide" : "Show"} {translateUI("frames &amp; sensors")}</button>
             {advanced && (
               <div className="grid3">
-                <Field label="Map frame"><input className="input mono" value={nav.frame} onChange={(e) => setNav({ ...nav, frame: e.target.value })} /></Field>
-                <Field label="Base frame"><input className="input mono" value={nav.base_frame} onChange={(e) => setNav({ ...nav, base_frame: e.target.value })} /></Field>
-                <Field label="Odometry source"><input className="input mono" value={nav.odom_source} onChange={(e) => setNav({ ...nav, odom_source: e.target.value })} /></Field>
+                <Field label={translateUI("Map frame")}><input className="input mono" value={nav.frame} onChange={(e) => setNav({ ...nav, frame: e.target.value })} /></Field>
+                <Field label={translateUI("Base frame")}><input className="input mono" value={nav.base_frame} onChange={(e) => setNav({ ...nav, base_frame: e.target.value })} /></Field>
+                <Field label={translateUI("Odometry source")}><input className="input mono" value={nav.odom_source} onChange={(e) => setNav({ ...nav, odom_source: e.target.value })} /></Field>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <Field label="Sensors">
+                  <Field label={translateUI("Sensors")}>
                     <div className="chips">
                       {SENSORS.map((s) => <button key={s} className={`chip${nav.sensors.includes(s) ? " on" : ""}`} onClick={() => setNav({ ...nav, sensors: nav.sensors.includes(s) ? nav.sensors.filter((x) => x !== s) : [...nav.sensors, s] })}>{s}</button>)}
                     </div>
@@ -304,7 +305,7 @@ export function RegisterWizard() {
       case 4:
         return (
           <div className="col" style={{ gap: 10 }}>
-            <div className="muted">These limits drive traffic planning: footprint decides which lanes fit, speed decides reservations.</div>
+            <div className="muted">{translateUI("These limits drive traffic planning: footprint decides which lanes fit, speed decides reservations.")}</div>
             <div className="grid3">
               {numField("Footprint radius", "radius", "m", "Circle enclosing the robot")}
               {numField("Max speed", "max_speed", "m/s", "Capped by the fleet limit")}
@@ -323,32 +324,32 @@ export function RegisterWizard() {
       case 5:
         return (
           <div className="col" style={{ gap: 12 }}>
-            <div className="muted">How does Nayantra talk to this robot?</div>
+            <div className="muted">{translateUI("How does Nayantra talk to this robot?")}</div>
             <div className="choice">
               {PROTOCOLS.map((p) => (
                 <button key={p.id} className={comm.protocol === p.id ? "on" : ""} onClick={() => { setComm({ ...comm, protocol: p.id }); if (p.id === "simulation") setNav((n) => ({ ...n, stack: "kinematic_sim", localization: "ground_truth" })); }}>
-                  <span className="ct">{p.label}</span>
+                  <span className="ct">{translateUI(p.label)}</span>
                   <span className="cd" style={{ color: meta && !meta.implemented_protocols.includes(p.id) ? "var(--warn)" : undefined }}>{p.desc}</span>
                 </button>
               ))}
             </div>
             {comm.protocol === "ros2" && (
               <div className="grid2">
-                <Field label="Namespace" hint="Leave empty for the global namespace (single robot)"><input className="input mono" value={comm.namespace || nav.namespace} onChange={(e) => setComm({ ...comm, namespace: e.target.value })} /></Field>
-                <Field label="ROS domain" hint="The core uses ROS_DOMAIN_ID from its environment"><input className="input" disabled value="from core environment" /></Field>
+                <Field label={translateUI("Namespace")} hint={translateUI("Leave empty for the global namespace (single robot)")}><input className="input mono" value={comm.namespace || nav.namespace} onChange={(e) => setComm({ ...comm, namespace: e.target.value })} /></Field>
+                <Field label={translateUI("ROS domain")} hint={translateUI("The core uses ROS_DOMAIN_ID from its environment")}><input className="input" disabled value="from core environment" /></Field>
               </div>
             )}
             {comm.protocol === "isaac_demo" && (
-              <Field label="Control API URL"><input className="input mono" placeholder="http://172.25.61.209:8900" value={comm.endpoint} onChange={(e) => setComm({ ...comm, endpoint: e.target.value })} /></Field>
+              <Field label={translateUI("Control API URL")}><input className="input mono" placeholder="http://172.25.61.209:8900" value={comm.endpoint} onChange={(e) => setComm({ ...comm, endpoint: e.target.value })} /></Field>
             )}
             {meta && !meta.implemented_protocols.includes(comm.protocol) && (
-              <div className="reason" style={vars({ "--c": "#fbbf24" })}>The {comm.protocol.toUpperCase()} adapter is not implemented yet. The robot will be registered, but its connection test will fail and it won't receive work.</div>
+              <div className="reason" style={vars({ "--c": "#fbbf24" })}>{translateUI("The")}{" "}{comm.protocol.toUpperCase()} {translateUI("adapter is not implemented yet. The robot will be registered, but its connection test will fail and it won't receive work.")}</div>
             )}
             {comm.protocol === "simulation" && (
               <div className="grid2">
-                <Field label="Spawn at">
+                <Field label={translateUI("Spawn at")}>
                   <select className="input" value={spawn.waypoint_id} onChange={(e) => setSpawn({ ...spawn, waypoint_id: e.target.value })}>
-                    <option value="">Choose a waypoint…</option>
+                    <option value="">{translateUI("Choose a waypoint…")}</option>
                     {spawnChoices.map((w) => <option key={w.id} value={w.id} disabled={w.taken}>{w.name}{w.taken ? " (occupied)" : ""}</option>)}
                   </select>
                 </Field>
@@ -361,15 +362,15 @@ export function RegisterWizard() {
         return result ? <ConnectResult robot={result} /> : (
           <div className="col" style={{ gap: 10 }}>
             <div className="kv">
-              <span>Robot</span><span>{name} <span className="faint mono">({id || slug(name)})</span></span>
-              <span>Type</span><span>{ROBOT_TYPE_LABEL[type]} · {[manufacturer, model].filter(Boolean).join(" ") || "—"}</span>
-              <span>Fleet</span><span>{fleetMode === "new" ? `${newFleet.name} (new)` : fleet?.name}</span>
-              <span>Capabilities</span><span>{caps.map(titleCase).join(", ") || "—"}</span>
-              <span>Navigation</span><span>{nav.stack} · {nav.localization} · map {maps[nav.map_id]?.name ?? nav.map_id}</span>
-              <span>Physical</span><span>r {phys.radius} m · {phys.max_speed} m/s{phys.payload_kg ? ` · ${phys.payload_kg} kg` : ""}</span>
-              <span>Link</span><span>{comm.protocol}{comm.endpoint ? ` · ${comm.endpoint}` : ""}{spawn.waypoint_id ? ` · spawn ${map?.waypoints.find((w) => w.id === spawn.waypoint_id)?.name}` : ""}</span>
+              <span>{translateUI("Robot")}</span><span>{name} <span className="faint mono">({id || slug(name)})</span></span>
+              <span>{translateUI("Type")}</span><span>{translateUI(ROBOT_TYPE_LABEL[type])} · {[manufacturer, model].filter(Boolean).join(" ") || "—"}</span>
+              <span>{translateUI("Fleet")}</span><span>{fleetMode === "new" ? `${newFleet.name} (new)` : fleet?.name}</span>
+              <span>{translateUI("Capabilities")}</span><span>{caps.map(titleCase).join(", ") || "—"}</span>
+              <span>{translateUI("Navigation")}</span><span>{nav.stack} · {nav.localization} {translateUI("· map")}{" "}{maps[nav.map_id]?.name ?? nav.map_id}</span>
+              <span>{translateUI("Physical")}</span><span>r {phys.radius} m · {phys.max_speed} m/s{phys.payload_kg ? ` · ${phys.payload_kg} kg` : ""}</span>
+              <span>{translateUI("Link")}</span><span>{comm.protocol}{comm.endpoint ? ` · ${comm.endpoint}` : ""}{spawn.waypoint_id ? ` · spawn ${map?.waypoints.find((w) => w.id === spawn.waypoint_id)?.name}` : ""}</span>
             </div>
-            <div className="faint">Registering runs a connection test right away.</div>
+            <div className="faint">{translateUI("Registering runs a connection test right away.")}</div>
           </div>
         );
     }
@@ -377,19 +378,18 @@ export function RegisterWizard() {
 
   return (
     <Modal
-      title="Register a robot"
+      title={translateUI("Register a robot")}
       onClose={close}
       footer={
         <>
-          <button className="btn" onClick={() => (step === 0 || result ? close() : setStep(step - 1))}>{step === 0 || result ? "Close" : <><ArrowLeft size={13} /> Back</>}</button>
+          <button className="btn" onClick={() => (step === 0 || result ? close() : setStep(step - 1))}>{step === 0 || result ? translateUI("Close") : <><ArrowLeft size={13} /> {translateUI("Back")}</>}</button>
           <div className="row">
             {error && <span style={{ color: "var(--err)", fontSize: 12.5 }}>{error}</span>}
-            {step < STEPS.length - 1 && <button className="btn primary" onClick={next}>Next <ArrowRight size={13} /></button>}
-            {step === STEPS.length - 1 && !result && <button className="btn primary" disabled={busy} onClick={register}>{busy ? "Connecting…" : "Register & test connection"}</button>}
+            {step < STEPS.length - 1 && <button className="btn primary" onClick={next}>{translateUI("Next")}{" "}<ArrowRight size={13} /></button>}
+            {step === STEPS.length - 1 && !result && <button className="btn primary" disabled={busy} onClick={register}>{busy ? "Connecting…" : translateUI("Register & test connection")}</button>}
             {result && (
               <button className="btn primary" onClick={() => { const s = useWorld.getState(); s.setPage("operations"); s.selectRobot(result.id); if (result.effective.map_id) s.setActiveMap(result.effective.map_id); close(); }}>
-                <MapPin size={13} /> Show on map
-              </button>
+                <MapPin size={13} /> {translateUI("Show on map")}{" "}</button>
             )}
           </div>
         </>

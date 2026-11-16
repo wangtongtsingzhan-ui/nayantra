@@ -1,3 +1,4 @@
+import { translateUI } from "../lib/language";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, Check, ListChecks, Server, TrafficCone } from "lucide-react";
 import { api } from "../api/client";
@@ -18,15 +19,15 @@ export function BottomDock() {
   return (
     <section className="dock">
       <div className="tabs">
-        <button className={tab === "events" ? "active" : ""} onClick={() => setTab("events")}><Activity size={13} /> Events</button>
+        <button className={tab === "events" ? "active" : ""} onClick={() => setTab("events")}><Activity size={13} /> {translateUI("Events")}</button>
         <button className={tab === "alerts" ? "active" : ""} onClick={() => setTab("alerts")}>
-          <AlertTriangle size={13} /> Alerts <span className={`count${activeAlerts ? " hot" : ""}`}>{activeAlerts}</span>
+          <AlertTriangle size={13} /> {translateUI("Alerts")}{" "}<span className={`count${activeAlerts ? " hot" : ""}`}>{activeAlerts}</span>
         </button>
-        <button className={tab === "tasks" ? "active" : ""} onClick={() => setTab("tasks")}><ListChecks size={13} /> Tasks <span className="count">{openTasks}</span></button>
+        <button className={tab === "tasks" ? "active" : ""} onClick={() => setTab("tasks")}><ListChecks size={13} /> {translateUI("Tasks")}{" "}<span className="count">{openTasks}</span></button>
         <button className={tab === "traffic" ? "active" : ""} onClick={() => setTab("traffic")}>
-          <TrafficCone size={13} /> Traffic <span className={`count${traffic.waits.length ? " hot" : ""}`}>{traffic.waits.length}</span>
+          <TrafficCone size={13} /> {translateUI("Traffic")}{" "}<span className={`count${traffic.waits.length ? " hot" : ""}`}>{traffic.waits.length}</span>
         </button>
-        <button className={tab === "system" ? "active" : ""} onClick={() => setTab("system")}><Server size={13} /> System health</button>
+        <button className={tab === "system" ? "active" : ""} onClick={() => setTab("system")}><Server size={13} /> {translateUI("System health")}</button>
       </div>
       <div className="dock-body">
         {tab === "events" && <EventsTab />}
@@ -58,10 +59,10 @@ function EventsTab() {
     <div>
       <div className="row" style={{ padding: "6px 12px", gap: 4, position: "sticky", top: 0, background: "var(--bg-2)", zIndex: 1 }}>
         {Object.keys(GROUPS).map((g) => (
-          <button key={g} className={`chip${group === g ? " on" : ""}`} style={{ height: 22 }} onClick={() => setGroup(g)}>{g}</button>
+          <button key={translateUI(g)} className={`chip${group === g ? " on" : ""}`} style={{ height: 22 }} onClick={() => setGroup(g)}>{translateUI(g)}</button>
         ))}
       </div>
-      {shown.length === 0 && <Empty>No events yet.</Empty>}
+      {shown.length === 0 && <Empty>{translateUI("No events yet.")}</Empty>}
       {shown.map((e) => (
         <div
           key={e.id}
@@ -73,8 +74,8 @@ function EventsTab() {
         >
           <span className="t">{clock(e.ts)}</span>
           <span className="dot" style={vars({ "--c": SEVERITY_COLOR[e.severity] })} />
-          <span className="ty" title={e.type}>{e.type}</span>
-          <span>{e.message}</span>
+          <span className="ty" title={e.type}>{translateUI(e.type)}</span>
+          <span>{translateUI(e.message)}</span>
         </div>
       ))}
     </div>
@@ -85,21 +86,21 @@ function AlertsTab() {
   const alerts = useWorld((s) => s.alerts);
   const toast = useWorld((s) => s.toast);
   const list = Object.values(alerts).filter((a) => a.status !== "resolved").sort((a, b) => b.raised_at - a.raised_at);
-  if (!list.length) return <Empty>No active alerts. Battery, connectivity, e-stop, restricted-zone and task failures raise alerts here.</Empty>;
+  if (!list.length) return <Empty>{translateUI("No active alerts. Battery, connectivity, e-stop, restricted-zone and task failures raise alerts here.")}</Empty>;
   return (
     <table className="tbl">
-      <thead><tr><th>Severity</th><th>Alert</th><th>Detail</th><th>Raised</th><th /></tr></thead>
+      <thead><tr><th>{translateUI("Severity")}</th><th>{translateUI("Alert")}</th><th>{translateUI("Detail")}</th><th>{translateUI("Raised")}</th><th /></tr></thead>
       <tbody>
         {list.map((a) => (
           <tr key={a.id}>
-            <td><span className="badge" style={vars({ "--c": SEVERITY_COLOR[a.severity] })}>{a.severity}</span></td>
-            <td style={{ fontWeight: 550 }}>{a.title}</td>
-            <td className="muted">{a.message}</td>
+            <td><span className="badge" style={vars({ "--c": SEVERITY_COLOR[a.severity] })}>{translateUI(a.severity)}</span></td>
+            <td style={{ fontWeight: 550 }}>{translateUI(a.title)}</td>
+            <td className="muted">{translateUI(a.message)}</td>
             <td className="faint">{ago(a.raised_at)}</td>
             <td style={{ textAlign: "right" }}>
               {a.status === "active" ? (
-                <button className="btn sm" onClick={() => api.post(`/alerts/${a.id}/ack`).catch((e) => toast("error", errMsg(e)))}><Check size={12} /> Acknowledge</button>
-              ) : <span className="faint">acknowledged</span>}
+                <button className="btn sm" onClick={() => api.post(`/alerts/${a.id}/ack`).catch((e) => toast("error", errMsg(e)))}><Check size={12} /> {translateUI("Acknowledge")}</button>
+              ) : <span className="faint">{translateUI("acknowledged")}</span>}
             </td>
           </tr>
         ))}
@@ -113,15 +114,15 @@ function TasksTab() {
   const robots = useWorld((s) => s.robots);
   const selectTask = useWorld((s) => s.selectTask);
   const list = Object.values(tasks).sort((a, b) => Number(isOpen(b.status)) - Number(isOpen(a.status)) || b.created_at - a.created_at).slice(0, 60);
-  if (!list.length) return <Empty>No tasks yet — create one from a waypoint, the robot panel, or the command bar.</Empty>;
+  if (!list.length) return <Empty>{translateUI("No tasks yet — create one from a waypoint, the robot panel, or the command bar.")}</Empty>;
   return (
     <table className="tbl">
-      <thead><tr><th>Task</th><th>Type</th><th>Robot</th><th>Status</th><th style={{ width: 130 }}>Progress</th><th>Why</th></tr></thead>
+      <thead><tr><th>{translateUI("Task")}</th><th>{translateUI("Type")}</th><th>{translateUI("Robot")}</th><th>{translateUI("Status")}</th><th style={{ width: 130 }}>{translateUI("Progress")}</th><th>{translateUI("Why")}</th></tr></thead>
       <tbody>
         {list.map((t) => (
           <tr key={t.id} className="click" onClick={() => selectTask(t.id)}>
             <td className="mono">{t.id}</td>
-            <td>{t.type}</td>
+            <td>{translateUI(t.type)}</td>
             <td>{t.assigned_robot ? robots[t.assigned_robot]?.name ?? t.assigned_robot : "—"}</td>
             <td><TaskBadge status={t.status} /></td>
             <td><Bar value={t.progress} color={TASK_META[t.status].color} /></td>
@@ -146,8 +147,8 @@ function TrafficTab() {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", minHeight: "100%" }}>
       <div style={{ borderRight: "1px solid var(--line)" }}>
-        <div className="section-title" style={{ padding: "8px 12px 4px" }}>Conflicts — predicted and resolved before they happen</div>
-        {conflicts.length === 0 && <Empty>No conflicts yet.</Empty>}
+        <div className="section-title" style={{ padding: "8px 12px 4px" }}>{translateUI("Conflicts — predicted and resolved before they happen")}</div>
+        {conflicts.length === 0 && <Empty>{translateUI("No conflicts yet.")}</Empty>}
         {conflicts.map((c) => (
           <div key={c.id} style={{ padding: "7px 12px", borderBottom: "1px solid var(--line)" }}>
             <div className="row" style={{ gap: 6 }}>
@@ -155,31 +156,31 @@ function TrafficTab() {
               <span style={{ fontWeight: 550 }}>{c.location_name}</span>
               <span className="faint" style={{ marginLeft: "auto" }}>{clock(c.detected_at)}</span>
             </div>
-            <div className="muted" style={{ fontSize: 12.5, marginTop: 3 }}>{c.message}</div>
+            <div className="muted" style={{ fontSize: 12.5, marginTop: 3 }}>{translateUI(c.message)}</div>
             {c.resolution && (
-              <div style={{ fontSize: 12.5, marginTop: 2, color: "var(--ok)" }}>✓ {c.resolution.message}</div>
+              <div style={{ fontSize: 12.5, marginTop: 2, color: "var(--ok)" }}>✓ {translateUI(c.resolution.message)}</div>
             )}
           </div>
         ))}
       </div>
       <div>
-        <div className="section-title" style={{ padding: "8px 12px 4px" }}>Waiting robots</div>
-        {traffic.waits.length === 0 && <div className="faint" style={{ padding: "4px 12px 10px" }}>Nobody is waiting.</div>}
+        <div className="section-title" style={{ padding: "8px 12px 4px" }}>{translateUI("Waiting robots")}</div>
+        {traffic.waits.length === 0 && <div className="faint" style={{ padding: "4px 12px 10px" }}>{translateUI("Nobody is waiting.")}</div>}
         {traffic.waits.map((w) => (
           <div key={w.robot_id} style={{ padding: "5px 12px", fontSize: 12.5 }}>
             <b>{name(w.robot_id)}</b> <span className="muted">{w.reason}</span>
           </div>
         ))}
-        <div className="section-title" style={{ padding: "10px 12px 4px" }}>Reservations held</div>
+        <div className="section-title" style={{ padding: "10px 12px 4px" }}>{translateUI("Reservations held")}</div>
         <div style={{ padding: "0 12px 10px", display: "flex", flexWrap: "wrap", gap: 6 }}>
           {Object.entries(perRobot).map(([rid, n]) => (
             <span key={rid} className="badge">{name(rid)} · {n}</span>
           ))}
         </div>
-        <div className="section-title" style={{ padding: "4px 12px" }}>Planned itineraries</div>
+        <div className="section-title" style={{ padding: "4px 12px" }}>{translateUI("Planned itineraries")}</div>
         {traffic.itineraries.map((it) => (
           <div key={it.robot_id} style={{ padding: "3px 12px", fontSize: 12 }} className="muted">
-            <b style={{ color: "var(--text)" }}>{name(it.robot_id)}</b> · {it.route.length - 1} hops · ETA {dur(it.eta)}
+            <b style={{ color: "var(--text)" }}>{name(it.robot_id)}</b> · {it.route.length - 1} {translateUI("hops · ETA")}{" "}{dur(it.eta)}
           </div>
         ))}
       </div>
@@ -212,7 +213,7 @@ export function SystemTab() {
     };
   }, []);
   if (err && !info) return <Empty>{err}</Empty>;
-  if (!info) return <Empty>Loading…</Empty>;
+  if (!info) return <Empty>{translateUI("Loading…")}</Empty>;
   const rows: [string, boolean | null, string][] = [
     ["Nayantra Core", info.core.ok, `v${info.core.version} · up ${dur(info.core.uptime_s)} · ${info.core.db}`],
     ["Simulation", info.simulation.running, `${info.simulation.engine} · ${info.simulation.robots.length} robots · ${info.simulation.speed}×`],
@@ -228,13 +229,13 @@ export function SystemTab() {
           <tr key={k}>
             <td style={{ width: 170, fontWeight: 550 }}>{k}</td>
             <td style={{ width: 110 }}>
-              <span className="badge" style={vars({ "--c": ok === null ? "#7c8ea0" : ok ? "#34d399" : "#f87171" })}>{ok === null ? "idle" : ok ? "ok" : "down"}</span>
+              <span className="badge" style={vars({ "--c": ok === null ? "#7c8ea0" : ok ? "#34d399" : "#f87171" })}>{ok === null ? translateUI("idle") : ok ? translateUI("ok") : translateUI("down")}</span>
             </td>
             <td className="muted">{d}</td>
           </tr>
         ))}
         <tr>
-          <td style={{ fontWeight: 550 }}>Registry</td>
+          <td style={{ fontWeight: 550 }}>{translateUI("Registry")}</td>
           <td />
           <td className="muted">{Object.entries(info.counts).map(([k, v]) => `${v} ${k.replace("_", " ")}`).join(" · ")}</td>
         </tr>
