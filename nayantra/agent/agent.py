@@ -255,7 +255,10 @@ class _OpenAIProvider(_Provider):
     def __init__(self) -> None:
         from openai import AsyncOpenAI  # lazy
 
-        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY or None)
+        self.client = AsyncOpenAI(
+            api_key=settings.OPENAI_API_KEY or None,
+            base_url=settings.OPENAI_BASE_URL or None,
+        )
         self.model = settings.OPENAI_MODEL
 
     def start(self, command: str, tools: list[dict[str, Any]]) -> None:
@@ -312,6 +315,80 @@ class _OpenAIProvider(_Provider):
             max_tokens=300,
         )
         return (resp.choices[0].message.content or "").strip()
+
+
+class _OpenAIResponsesProvider(_Provider):
+    """Responses API adapter for Codex-compatible endpoints."""
+
+    def __init__(self) -> None:
+        from openai import AsyncOpenAI
+
+        self.client = AsyncOpenAI(
+            api_key=settings.OPENAI_API_KEY or None,
+            base_url=settings.OPENAI_BASE_URL or None,
+            http_client=httpx.AsyncClient(follow_redirects=False),
+        )
+        self.model = settings.OPENAI_MODEL
+
+    def start(self, command: str, tools: list[dict[str, Any]]) -> None:
+        self.tools = [
+            {
+                "type": "function",
+                "name": tool["name"],
+                "description": tool.get("description", ""),
+                "parameters": _json_schema(tool),
+                "strict": False,
+            }
+            for tool in tools
+        ]
+        self.items: list[Any] = [{"role": "user", "content": command}]
+
+    async def _response(self, items: list[Any], tools: list[dict[str, Any]]) -> Any:
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "instructions": SYSTEM_PROMPT,
+            "input": items,
+            "store": False,
+            "stream": True,
+        }
+        if tools:
+            kwargs["tools"] = tools
+            kwargs["tool_choice"] = "auto"
+        stream = await self.client.responses.create(**kwargs)
+        response = None
+        async for event in stream:
+            if event.type == "response.completed":
+                response = event.response
+            elif event.type in ("response.failed", "error"):
+                raise RuntimeError("Responses API request failed")
+        if response is None:
+            raise RuntimeError("Responses API stream ended without a completed response")
+        return response
+
+    async def next_turn(self) -> Turn:
+        resp = await self._response(self.items, self.tools)
+        calls: list[Call] = []
+        for item in resp.output:
+            self.items.append(item.model_dump(exclude_none=True))
+            if item.type == "function_call":
+                try:
+                    args = json.loads(item.arguments or "{}")
+                except json.JSONDecodeError:
+                    args = {"_invalid_json": item.arguments}
+                calls.append(Call(item.call_id, item.name, args))
+        return Turn(resp.output_text or "", calls, "tool_use" if calls else "end")
+
+    def add_results(self, results: list[tuple[Call, Any, bool]]) -> None:
+        for call, payload, _ in results:
+            self.items.append({
+                "type": "function_call_output",
+                "call_id": call.id,
+                "output": json.dumps(payload, default=str),
+            })
+
+    async def summarise(self, prompt: str) -> str:
+        resp = await self._response([{"role": "user", "content": prompt}], [])
+        return (resp.output_text or "").strip()
 
 
 class _GeminiProvider(_Provider):
@@ -410,7 +487,11 @@ class RMFAgent:
                 raise ValueError(
                     f"Unknown LLM_PROVIDER: {name!r}. Must be one of: anthropic, openai, gemini."
                 )
-            cls = _PROVIDERS[name]
+            cls = (
+                _OpenAIResponsesProvider
+                if name == "openai" and settings.OPENAI_API_MODE == "responses"
+                else _PROVIDERS[name]
+            )
             cls()  # fail fast on a missing SDK
             self._provider_factory = cls
         self._llm_provider = settings.LLM_PROVIDER

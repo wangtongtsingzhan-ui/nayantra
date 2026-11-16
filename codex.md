@@ -43,3 +43,7 @@ Nayantra Core 自行负责任务分配与交通协调；按当前项目说明，
 ## Git 工作约定
 
 `origin` 最初指向上游仓库；推送前核实目标地址与用户账户。只提交源代码和明确需要的文档；不要提交 `.env`、密钥、虚拟环境、node_modules、构建产物、数据库、日志或本地翻译备份。用户未要求时不要重置已有工作或数据。提交前运行 `git diff --check`、适用的构建/测试，并核对暂存文件。
+
+## 大模型兼容接口
+
+OpenAI 兼容连接使用 OPENAI_BASE_URL、OPENAI_MODEL 和 OPENAI_API_MODE（chat 或 responses）；默认使用 chat。Responses 模式支持工具调用及流式输出。具体地址和密钥仅存在本地 .env，不要放入 Git 或日志。修改这些设置后需要重启 Agent 服务；核心服务的状态显示在其重启前可能仍为旧值。
