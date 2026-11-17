@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import httpx
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -165,6 +165,22 @@ class AgentCommand(BaseModel):
     history: list[ChatTurn] = Field(
         default_factory=list, max_length=16
     )  # earlier turns of the chat, oldest first
+
+
+class AgentArchiveCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+    purpose: str = "general"
+
+
+class AgentArchivePatch(BaseModel):
+    name: str | None = Field(default=None, max_length=120)
+    purpose: str | None = None
+
+
+class AgentMissionPatch(BaseModel):
+    title: str | None = Field(default=None, max_length=120)
+    archive_id: str | None = None
+    pinned: bool | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -1054,6 +1070,82 @@ async def agent_status():
         "llm_configured": bool(key.get(settings.LLM_PROVIDER)),
         "detail": "" if ok else f"agent API returned HTTP {r.status_code}",
     }
+
+
+async def agent_request(
+    method: str, path: str, *, params: dict[str, Any] | None = None, body: dict[str, Any] | None = None,
+) -> Any:
+    """Relay AI audit management requests without exposing the Agent API to browsers."""
+    url = f"{settings.AGENT_API_URL.rstrip('/')}{path}"
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as http:
+            response = await http.request(method, url, params=params, json=body)
+            response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(exc.response.status_code, "Agent API rejected the request") from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(503, f"Agent API not reachable ({type(exc).__name__})") from exc
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise HTTPException(502, "Agent API returned invalid JSON") from exc
+
+
+async def agent_get(path: str, params: dict[str, Any] | None = None) -> Any:
+    return await agent_request("GET", path, params=params)
+
+
+@router.get("/agent/history")
+async def agent_history(limit: int = Query(50, ge=1, le=100)):
+    return await agent_get("/history", {"limit": limit})
+
+
+@router.get("/agent/stats")
+async def agent_stats():
+    return await agent_get("/stats")
+
+
+@router.get("/agent/history/{mission_id}")
+async def agent_history_detail(mission_id: str):
+    return await agent_get(f"/history/{urllib.parse.quote(mission_id, safe='')}")
+
+
+@router.patch("/agent/history/{mission_id}")
+async def agent_history_update(mission_id: str, body: AgentMissionPatch):
+    return await agent_request(
+        "PATCH",
+        f"/history/{urllib.parse.quote(mission_id, safe='')}",
+        body=body.model_dump(exclude_unset=True),
+    )
+
+
+@router.delete("/agent/history/{mission_id}")
+async def agent_history_delete(mission_id: str):
+    return await agent_request("DELETE", f"/history/{urllib.parse.quote(mission_id, safe='')}")
+
+
+@router.get("/agent/archives")
+async def agent_archives():
+    return await agent_get("/archives")
+
+
+@router.post("/agent/archives")
+async def agent_archive_create(body: AgentArchiveCreate):
+    return await agent_request("POST", "/archives", body=body.model_dump())
+
+
+@router.patch("/agent/archives/{archive_id}")
+async def agent_archive_update(archive_id: str, body: AgentArchivePatch):
+    return await agent_request(
+        "PATCH",
+        f"/archives/{urllib.parse.quote(archive_id, safe='')}",
+        body=body.model_dump(exclude_unset=True),
+    )
+
+
+@router.delete("/agent/archives/{archive_id}")
+async def agent_archive_delete(archive_id: str):
+    return await agent_request("DELETE", f"/archives/{urllib.parse.quote(archive_id, safe='')}")
 
 
 @router.post("/agent/command")

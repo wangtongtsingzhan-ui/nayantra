@@ -183,6 +183,22 @@ async def test_stream_emits_step_events(stack):
     assert done["success"] is True and done["summary"] == "Four fleets."
 
 
+async def test_stream_reports_completed_mission_to_callback(stack):
+    provider = ScriptedProvider([Turn("Fleet state is nominal.", [], "end")])
+    agent = make_agent(provider)
+    saved = []
+
+    async def on_complete(mission):
+        saved.append(mission)
+
+    _ = [chunk async for chunk in agent.stream_run("check the fleet", on_complete=on_complete)]
+    await agent.close()
+    assert len(saved) == 1
+    assert saved[0].command == "check the fleet"
+    assert saved[0].summary == "Fleet state is nominal."
+    assert saved[0].success is True
+
+
 async def test_chat_history_reaches_the_model_but_not_the_mission_record(stack):
     provider = ScriptedProvider([Turn("Sent the other one too.", [], "end")])
     agent = make_agent(provider)

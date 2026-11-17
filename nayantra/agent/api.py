@@ -8,6 +8,8 @@ Endpoints:
   GET  /stream        — Execute a command with SSE step-by-step streaming
   GET  /history       — Recent mission list
   GET  /history/{id}  — Single mission detail
+  PATCH /history/{id} — Rename or file a conversation
+  GET/POST/PATCH/DELETE /archives — Conversation archive management
   GET  /stats         — Mission statistics
   GET  /health        — Liveness probe
   GET  /readiness     — Full startup readiness check
@@ -24,7 +26,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from nayantra.agent.agent import RMFAgent
 from nayantra.agent.health import HealthChecker
@@ -105,7 +107,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
@@ -120,6 +122,22 @@ class CommandResponse(BaseModel):
     summary: str
     success: bool
     step_count: int
+
+
+class ArchiveCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+    purpose: str = "general"
+
+
+class ArchivePatch(BaseModel):
+    name: str | None = Field(default=None, max_length=120)
+    purpose: str | None = None
+
+
+class MissionPatch(BaseModel):
+    title: str | None = Field(default=None, max_length=120)
+    archive_id: str | None = None
+    pinned: bool | None = None
 
 
 @app.get("/health")
@@ -178,8 +196,13 @@ async def stream_command(command: str, history: str | None = None):
             turns = [t for t in parsed if isinstance(t, dict)] if isinstance(parsed, list) else []
         except ValueError:
             turns = []
+
+    async def persist(mission) -> None:
+        if _store:
+            await _store.save(mission)
+
     return StreamingResponse(
-        agent.stream_run(command, turns),
+        agent.stream_run(command, turns, on_complete=persist),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -200,6 +223,81 @@ async def get_mission(mission_id: str):
     if not result:
         raise HTTPException(404, f"Mission {mission_id} not found")
     return result
+
+
+@app.patch("/history/{mission_id}")
+async def patch_mission(mission_id: str, body: MissionPatch):
+    if _store is None:
+        raise HTTPException(503, "Store not initialised")
+    fields = body.model_fields_set
+    try:
+        result = await _store.update_mission(
+            mission_id,
+            title=body.title,
+            archive_id=body.archive_id,
+            pinned=body.pinned,
+            set_title="title" in fields,
+            set_archive="archive_id" in fields,
+            set_pinned="pinned" in fields,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    if not result:
+        raise HTTPException(404, f"Mission {mission_id} not found")
+    return result
+
+
+@app.delete("/history/{mission_id}")
+async def delete_mission(mission_id: str):
+    if _store is None:
+        raise HTTPException(503, "Store not initialised")
+    if not await _store.delete(mission_id):
+        raise HTTPException(404, f"Mission {mission_id} not found")
+    return {"deleted": True}
+
+
+@app.get("/archives")
+async def get_archives():
+    if _store is None:
+        return []
+    return await _store.archives()
+
+
+@app.post("/archives")
+async def create_archive(body: ArchiveCreate):
+    if _store is None:
+        raise HTTPException(503, "Store not initialised")
+    try:
+        return await _store.create_archive(body.name, body.purpose)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.patch("/archives/{archive_id}")
+async def patch_archive(archive_id: str, body: ArchivePatch):
+    if _store is None:
+        raise HTTPException(503, "Store not initialised")
+    fields = body.model_fields_set
+    try:
+        result = await _store.update_archive(
+            archive_id,
+            name=body.name if "name" in fields else None,
+            purpose=body.purpose if "purpose" in fields else None,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    if not result:
+        raise HTTPException(404, f"Archive {archive_id} not found")
+    return result
+
+
+@app.delete("/archives/{archive_id}")
+async def delete_archive(archive_id: str):
+    if _store is None:
+        raise HTTPException(503, "Store not initialised")
+    if not await _store.delete_archive(archive_id):
+        raise HTTPException(404, f"Archive {archive_id} not found")
+    return {"deleted": True}
 
 
 @app.get("/stats")

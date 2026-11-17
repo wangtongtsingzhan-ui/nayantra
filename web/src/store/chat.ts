@@ -13,6 +13,7 @@ export interface ChatTurn {
   at: number;
 }
 export interface HistoryMsg { role: "user" | "assistant"; text: string }
+export type RestoredChatTurn = Pick<ChatTurn, "command" | "steps" | "answer" | "at">;
 
 const KEEP_TURNS = 30;      // what is remembered across reloads
 const CONTEXT_TURNS = 4;    // earlier turns the agent sees with a new request
@@ -52,6 +53,7 @@ interface ChatState {
   send: (command: string) => Promise<void>;
   stop: () => void;
   clear: () => void;
+  restore: (turn: RestoredChatTurn) => boolean;
   setCollapsed: (v: boolean) => void;
 }
 
@@ -71,6 +73,15 @@ export const useChat = create<ChatState>((set, get) => ({
     if (get().busy) return;
     writePref("chat", []);
     set({ turns: [] });
+  },
+
+  restore: (turn) => {
+    if (get().busy) return false;
+    const restored: ChatTurn = { ...turn, id: Date.now(), busy: false };
+    writePref("chat", [restored]);
+    set({ turns: [restored], collapsed: false });
+    window.dispatchEvent(new Event("nayantra-chat-restored"));
+    return true;
   },
 
   stop: () => abort?.abort(),
@@ -110,6 +121,7 @@ export const useChat = create<ChatState>((set, get) => ({
       abort = null;
       set({ busy: false });
       writePref("chat", get().turns.filter((t) => !t.busy).slice(-KEEP_TURNS));
+      window.dispatchEvent(new Event("nayantra-agent-mission-complete"));
     }
   },
 }));

@@ -28,6 +28,7 @@ import json
 import logging
 import sqlite3
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +37,14 @@ from nayantra.agent.models import MissionResult
 logger = logging.getLogger("rmf.history")
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parents[2] / "data" / "missions.db"
+ARCHIVE_PURPOSES = {
+    "general",
+    "status_review",
+    "task_dispatch",
+    "traffic",
+    "safety",
+    "maintenance",
+}
 
 
 class MissionStore:
@@ -59,7 +68,18 @@ class MissionStore:
                     summary     TEXT,
                     success     INTEGER NOT NULL DEFAULT 0,
                     step_count  INTEGER NOT NULL DEFAULT 0,
+                    title       TEXT,
+                    archive_id  TEXT,
+                    pinned      INTEGER NOT NULL DEFAULT 0,
                     created_at  REAL NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS archives (
+                    id          TEXT PRIMARY KEY,
+                    name        TEXT NOT NULL,
+                    purpose     TEXT NOT NULL DEFAULT 'general',
+                    created_at  REAL NOT NULL,
+                    updated_at  REAL NOT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS steps (
@@ -76,6 +96,17 @@ class MissionStore:
                 CREATE INDEX IF NOT EXISTS idx_missions_created ON missions(created_at DESC);
                 CREATE INDEX IF NOT EXISTS idx_missions_success  ON missions(success);
             """)
+            # Existing installations predate conversation organisation. SQLite
+            # only supports additive migrations, which is sufficient here.
+            columns = {row["name"] for row in conn.execute("PRAGMA table_info(missions)")}
+            if "title" not in columns:
+                conn.execute("ALTER TABLE missions ADD COLUMN title TEXT")
+            if "archive_id" not in columns:
+                conn.execute("ALTER TABLE missions ADD COLUMN archive_id TEXT")
+            if "pinned" not in columns:
+                conn.execute("ALTER TABLE missions ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_missions_archive ON missions(archive_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_missions_pinned ON missions(pinned DESC)")
         logger.debug(f"Mission DB initialised at {self._db_path}")
 
     def _connect(self) -> sqlite3.Connection:
@@ -102,9 +133,15 @@ class MissionStore:
     def _save_sync(self, mission: MissionResult) -> None:
         with self._connect() as conn:
             conn.execute(
-                """INSERT OR REPLACE INTO missions
+                """INSERT INTO missions
                    (id, command, summary, success, step_count, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(id) DO UPDATE SET
+                       command=excluded.command,
+                       summary=excluded.summary,
+                       success=excluded.success,
+                       step_count=excluded.step_count,
+                       created_at=excluded.created_at""",
                 (
                     mission.mission_id,
                     mission.command,
@@ -114,6 +151,7 @@ class MissionStore:
                     time.time(),
                 ),
             )
+            conn.execute("DELETE FROM steps WHERE mission_id = ?", (mission.mission_id,))
             for step in mission.steps:
                 conn.execute(
                     """INSERT OR REPLACE INTO steps
@@ -142,7 +180,10 @@ class MissionStore:
     def _recent_sync(self, limit: int) -> list[dict[str, Any]]:
         with self._connect() as conn:
             rows = conn.execute(
-                "SELECT * FROM missions ORDER BY created_at DESC LIMIT ?", (limit,)
+                """SELECT m.*, a.name AS archive_name, a.purpose AS archive_purpose
+                   FROM missions AS m LEFT JOIN archives AS a ON a.id = m.archive_id
+                   ORDER BY m.pinned DESC, m.created_at DESC LIMIT ?""",
+                (limit,),
             ).fetchall()
         return [dict(r) for r in rows]
 
@@ -152,7 +193,12 @@ class MissionStore:
 
     def _get_sync(self, mission_id: str) -> dict[str, Any] | None:
         with self._connect() as conn:
-            row = conn.execute("SELECT * FROM missions WHERE id = ?", (mission_id,)).fetchone()
+            row = conn.execute(
+                """SELECT m.*, a.name AS archive_name, a.purpose AS archive_purpose
+                   FROM missions AS m LEFT JOIN archives AS a ON a.id = m.archive_id
+                   WHERE m.id = ?""",
+                (mission_id,),
+            ).fetchone()
             if not row:
                 return None
             mission = dict(row)
@@ -170,8 +216,11 @@ class MissionStore:
     def _search_sync(self, query: str, limit: int) -> list[dict[str, Any]]:
         with self._connect() as conn:
             rows = conn.execute(
-                "SELECT * FROM missions WHERE command LIKE ? ORDER BY created_at DESC LIMIT ?",
-                (f"%{query}%", limit),
+                """SELECT m.*, a.name AS archive_name, a.purpose AS archive_purpose
+                   FROM missions AS m LEFT JOIN archives AS a ON a.id = m.archive_id
+                   WHERE m.command LIKE ? OR m.title LIKE ?
+                   ORDER BY m.pinned DESC, m.created_at DESC LIMIT ?""",
+                (f"%{query}%", f"%{query}%", limit),
             ).fetchall()
         return [dict(r) for r in rows]
 
@@ -223,6 +272,124 @@ class MissionStore:
             "last_24h_total": recent_total,
             "last_24h_failed": recent_failed,
         }
+
+    # ------------------------------------------------------------------
+    # Conversation organisation
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _clean_name(value: str, label: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError(f"{label} cannot be empty")
+        if len(cleaned) > 120:
+            raise ValueError(f"{label} must be 120 characters or less")
+        return cleaned
+
+    @staticmethod
+    def _clean_purpose(value: str) -> str:
+        if value not in ARCHIVE_PURPOSES:
+            raise ValueError("Unsupported archive purpose")
+        return value
+
+    async def archives(self) -> list[dict[str, Any]]:
+        return await asyncio.to_thread(self._archives_sync)
+
+    def _archives_sync(self) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """SELECT a.*, COUNT(m.id) AS mission_count
+                   FROM archives AS a LEFT JOIN missions AS m ON m.archive_id = a.id
+                   GROUP BY a.id ORDER BY a.updated_at DESC, a.created_at DESC"""
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    async def create_archive(self, name: str, purpose: str = "general") -> dict[str, Any]:
+        return await asyncio.to_thread(self._create_archive_sync, name, purpose)
+
+    def _create_archive_sync(self, name: str, purpose: str) -> dict[str, Any]:
+        name = self._clean_name(name, "Archive name")
+        purpose = self._clean_purpose(purpose)
+        archive = {"id": str(uuid.uuid4()), "name": name, "purpose": purpose}
+        now = time.time()
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO archives (id, name, purpose, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                (archive["id"], name, purpose, now, now),
+            )
+        return {**archive, "created_at": now, "updated_at": now, "mission_count": 0}
+
+    async def update_archive(
+        self, archive_id: str, *, name: str | None = None, purpose: str | None = None
+    ) -> dict[str, Any] | None:
+        return await asyncio.to_thread(self._update_archive_sync, archive_id, name, purpose)
+
+    def _update_archive_sync(self, archive_id: str, name: str | None, purpose: str | None) -> dict[str, Any] | None:
+        if name is not None:
+            name = self._clean_name(name, "Archive name")
+        if purpose is not None:
+            purpose = self._clean_purpose(purpose)
+        with self._connect() as conn:
+            existing = conn.execute("SELECT * FROM archives WHERE id = ?", (archive_id,)).fetchone()
+            if not existing:
+                return None
+            new_name = name if name is not None else existing["name"]
+            new_purpose = purpose if purpose is not None else existing["purpose"]
+            now = time.time()
+            conn.execute(
+                "UPDATE archives SET name = ?, purpose = ?, updated_at = ? WHERE id = ?",
+                (new_name, new_purpose, now, archive_id),
+            )
+        return self._get_archive_sync(archive_id)
+
+    def _get_archive_sync(self, archive_id: str) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """SELECT a.*, COUNT(m.id) AS mission_count
+                   FROM archives AS a LEFT JOIN missions AS m ON m.archive_id = a.id
+                   WHERE a.id = ? GROUP BY a.id""",
+                (archive_id,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    async def delete_archive(self, archive_id: str) -> bool:
+        return await asyncio.to_thread(self._delete_archive_sync, archive_id)
+
+    def _delete_archive_sync(self, archive_id: str) -> bool:
+        with self._connect() as conn:
+            conn.execute("UPDATE missions SET archive_id = NULL WHERE archive_id = ?", (archive_id,))
+            deleted = conn.execute("DELETE FROM archives WHERE id = ?", (archive_id,))
+        return deleted.rowcount > 0
+
+    async def update_mission(
+        self, mission_id: str, *, title: str | None = None, archive_id: str | None = None,
+        pinned: bool | None = None, set_title: bool = False, set_archive: bool = False, set_pinned: bool = False,
+    ) -> dict[str, Any] | None:
+        return await asyncio.to_thread(
+            self._update_mission_sync, mission_id, title, archive_id, pinned, set_title, set_archive, set_pinned
+        )
+
+    def _update_mission_sync(
+        self, mission_id: str, title: str | None, archive_id: str | None, pinned: bool | None,
+        set_title: bool, set_archive: bool, set_pinned: bool,
+    ) -> dict[str, Any] | None:
+        if set_title and title is not None:
+            title = self._clean_name(title, "Conversation title")
+        with self._connect() as conn:
+            existing = conn.execute("SELECT id FROM missions WHERE id = ?", (mission_id,)).fetchone()
+            if not existing:
+                return None
+            if set_archive and archive_id is not None:
+                archive = conn.execute("SELECT id FROM archives WHERE id = ?", (archive_id,)).fetchone()
+                if not archive:
+                    raise ValueError("Archive not found")
+            if set_title:
+                conn.execute("UPDATE missions SET title = ? WHERE id = ?", (title, mission_id))
+            if set_archive:
+                conn.execute("UPDATE missions SET archive_id = ? WHERE id = ?", (archive_id, mission_id))
+            if set_pinned:
+                conn.execute("UPDATE missions SET pinned = ? WHERE id = ?", (int(bool(pinned)), mission_id))
+        return self._get_sync(mission_id)
 
     async def delete(self, mission_id: str) -> bool:
         """Delete a mission record and its steps."""

@@ -5,7 +5,7 @@ import type {
   SimStatus, Task, TrafficState, Waypoint, World, Zone,
 } from "../api/types";
 
-export type Page = "operations" | "fleets" | "robots" | "tasks" | "map" | "system";
+export type Page = "operations" | "assistant" | "fleets" | "robots" | "tasks" | "map" | "system";
 export type LayerKey =
   | "image" | "walls" | "zones" | "lanes" | "airLanes" | "waypoints" | "labels" | "robots"
   | "paths" | "trails" | "reservations" | "conflicts" | "grid";

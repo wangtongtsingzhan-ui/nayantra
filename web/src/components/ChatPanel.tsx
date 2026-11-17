@@ -21,7 +21,7 @@ const MAX_INPUT_PX = 140;
 
 /** Operator ↔ agent conversation, docked in the right-hand column. The agent turns sentences into
  *  structured tasks through MCP tools; it never drives robots itself. */
-export function ChatPanel() {
+export function ChatPanel({ fullPage = false, suggestions = EXAMPLES }: { fullPage?: boolean; suggestions?: readonly string[] }) {
   const turns = useChat((s) => s.turns);
   const busy = useChat((s) => s.busy);
   const collapsed = useChat((s) => s.collapsed);
@@ -47,7 +47,15 @@ export function ChatPanel() {
       }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const onRestore = () => {
+      stick.current = true;
+      setFocusTick((n) => n + 1);
+    };
+    window.addEventListener("nayantra-chat-restored", onRestore);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("nayantra-chat-restored", onRestore);
+    };
   }, []);
 
   useEffect(() => {
@@ -79,7 +87,7 @@ export function ChatPanel() {
     void send(q);
   };
 
-  if (collapsed) {
+  if (collapsed && !fullPage) {
     return (
       <button type="button" className="chat-bar" onClick={() => { setCollapsed(false); setFocusTick((n) => n + 1); }}>
         {busy ? <ThinkingIcon size={26} /> : <Sparkles size={16} />}
@@ -93,17 +101,17 @@ export function ChatPanel() {
   const unavailable = status && !status.available;
   const noKey = status?.available && status.llm_configured === false;
   return (
-    <section className="chat" aria-label={translateUI("Assistant")}>
+    <section className={`chat${fullPage ? " full-page-chat" : ""}`} aria-label={translateUI(fullPage ? "AI Assistant" : "Assistant")}>
       <header className="chat-head">
-        <span className="chat-title"><Sparkles size={15} style={{ color: "var(--accent-fg)" }} /> {translateUI("Assistant")}</span>
+        <span className="chat-title"><Sparkles size={15} style={{ color: "var(--accent-fg)" }} /> {translateUI(fullPage ? "AI Assistant" : "Assistant")}</span>
         {status?.provider && status.available && <span className="faint chat-model">{status.provider}</span>}
         <span className="grow" />
         <button type="button" className="btn ghost sm icon" onClick={clear} disabled={busy || turns.length === 0} title={translateUI("New chat")} aria-label={translateUI("New chat")}>
           <SquarePen size={14} />
         </button>
-        <button type="button" className="btn ghost sm icon" onClick={() => setCollapsed(true)} title={translateUI("Collapse")} aria-label={translateUI("Collapse")}>
+        {!fullPage && <button type="button" className="btn ghost sm icon" onClick={() => setCollapsed(true)} title={translateUI("Collapse")} aria-label={translateUI("Collapse")}>
           <ChevronDown size={15} />
-        </button>
+        </button>}
       </header>
 
       <div
@@ -127,7 +135,7 @@ export function ChatPanel() {
             <h2>{translateUI("Command anything")}</h2>
             <p>{translateUI("Say what you want done in plain words. Risky actions always ask you to confirm first.")}</p>
             <div className="suggest">
-              {EXAMPLES.map((ex) => (
+              {suggestions.map((ex) => (
                 <button key={ex} type="button" onClick={() => ask(ex)} disabled={busy}>
                   <Sparkles size={13} /> {ex}
                 </button>

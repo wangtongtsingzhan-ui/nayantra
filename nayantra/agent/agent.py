@@ -24,7 +24,7 @@ import json
 import logging
 import time
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -41,13 +41,16 @@ _HISTORY_MAX_TURNS = 8  # earlier chat messages handed to the model with a new r
 _HISTORY_TURN_CHARS = 600  # per message
 _HISTORY_MAX_CHARS = 3000  # in total
 
-SYSTEM_PROMPT = """You are the operator assistant of Nayantra, a control plane for heterogeneous robot fleets \
-(UGVs, UAVs, quadrupeds, humanoids). You turn the operator's request into Nayantra operations using the \
+SYSTEM_PROMPT = """You are the operator assistant of tsingbot, a control plane for heterogeneous robot fleets \
+(UGVs, UAVs, quadrupeds, humanoids). You turn the operator's request into tsingbot operations using the \
 provided tools, which are the only actions that exist.
 
-How Nayantra works:
-- You describe the work; Nayantra decides who does it. For jobs ("deliver…", "patrol…", "inspect…", \
-"send a robot to…"), call create_task and let Nayantra choose the robot from capability, distance, battery, \
+The product name is tsingbot. Always use this exact name in every external reply, including greetings and \
+self-introductions. Never call the product Nayantra.
+
+How tsingbot works:
+- You describe the work; tsingbot decides who does it. For jobs ("deliver…", "patrol…", "inspect…", \
+"send a robot to…"), call create_task and let tsingbot choose the robot from capability, distance, battery, \
 workload and traffic. Only set `robot` (or use navigate_robot) when the operator named a specific robot.
 - For N identical jobs ("deliver three packages"), call create_task once with count=N.
 - Places are waypoint names/ids or area names such as "receiving", "storage", "charging station". \
@@ -56,13 +59,13 @@ is unknown, use its suggestions or ask.
 - Answer questions about the current situation ("which robots are charging?", "why is UGV-03 waiting?", \
 "what route is robot 3 taking?") from live tools such as list_robots, get_robot_state, get_task_status and \
 get_traffic_state rather than from assumptions.
-- There is no motion or velocity tool. Nayantra plans routes, reserves lanes and enforces safety limits.
+- There is no motion or velocity tool. tsingbot plans routes, reserves lanes and enforces safety limits.
 - Stopping all robots, emergency-stopping a fleet, removing a robot, and destinations inside restricted \
 areas come back as confirmation_required. Tell the operator it is waiting for their confirmation in the \
 dashboard; do not retry or work around it.
 - If a tool returns ok=false, read the error and either correct the request or explain the problem.
 
-Reply briefly in plain language: what you did (task ids, which robot Nayantra picked and why) or the facts \
+Reply briefly in plain language: what you did (task ids, which robot tsingbot picked and why) or the facts \
 the operator asked for."""
 
 
@@ -626,7 +629,10 @@ class RMFAgent:
         return mission
 
     async def stream_run(
-        self, command: str, history: list[dict[str, Any]] | None = None
+        self,
+        command: str,
+        history: list[dict[str, Any]] | None = None,
+        on_complete: Callable[[MissionResult], Awaitable[None]] | None = None,
     ) -> AsyncIterator[str]:
         """SSE stream: status, step_start, step_done, done. Errors end as a 'done' event."""
         mission = MissionResult(command=command)
@@ -635,7 +641,18 @@ class RMFAgent:
                 yield _sse(kind, data)
         except Exception as exc:  # noqa: BLE001
             logger.exception("stream_run failed")
+            mission.success = False
+            mission.summary = f"Agent error: {exc}"
             yield _sse("done", {"summary": f"Agent error: {exc}", "success": False})
+        finally:
+            if not mission.summary:
+                mission.success = False
+                mission.summary = "Agent stream ended before a final response."
+            if on_complete:
+                try:
+                    await on_complete(mission)
+                except Exception:  # noqa: BLE001
+                    logger.exception("Could not persist streamed mission")
 
     async def close(self) -> None:
         await self._http.aclose()

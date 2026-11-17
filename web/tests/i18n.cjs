@@ -26,6 +26,43 @@ test("task and robot messages preserve names, identifiers and duration", () => {
   assert.equal(t("T-0056 (land) assigned to UAV-03"), "任务 T-0056（降落）已分配给 UAV-03");
   assert.equal(t("T-0056 created: land: Fly to nearest free pad"), "已创建任务 T-0056：降落：飞往最近的空闲停机坪");
 });
+test("allocation failures and delivery event descriptions are translated", () => {
+  const reason = "No robot can perform this task: Quadruped-04 — lacks capability carry_payload.";
+  assert.equal(t(reason), "没有机器人能够执行此任务：Quadruped-04：缺少运载货物能力。");
+  assert.equal(t(`T-0106 failed: ${reason}`), "任务 T-0106 执行失败：没有机器人能够执行此任务：Quadruped-04：缺少运载货物能力。");
+  assert.equal(t("T-0106 created: deliver payload from Storage to Receiving"), "已创建任务 T-0106：配送载荷：从 Storage 运送至 Receiving");
+  assert.equal(t("T-0107 is waiting for a robot: Waiting for a robot: UGV-01 — is offline."), "任务 T-0107 正在等待可用机器人：正在等待可用机器人：UGV-01：当前离线。");
+  assert.equal(t("No robots registered in fleet warehouse_fleet."), "车队 warehouse_fleet中尚未注册机器人。");
+});
+test("common event descriptions translate while preserving names and measurements", () => {
+  const cases = [
+    ["Robot 'tsingbot01' registered in fleet '清湛车队'", "机器人“tsingbot01”已注册到车队“清湛车队”"],
+    ["Fleet '清湛车队' (ugv) created", "车队“清湛车队”（地面机器人）已创建"],
+    ["UAV-01 connected (simulation)", "UAV-01 已连接（模拟）"],
+    ["Potential same-lane conflict between UAV-01 and UAV-02 at Westbound 12 m in ≈7 s", "预计约 7 秒后，UAV-01 与 UAV-02 在 Westbound 12 m 发生同车道冲突"],
+    ["UGV-02 and Humanoid-01 were blocking each other; planned jointly so both can proceed", "UGV-02 与 Humanoid-01 相互阻挡；已联合规划路线，使双方都能通行"],
+    ["Humanoid-03 re-routed by traffic negotiation: North Aisle 4 → Receiving Bay 3", "Humanoid-03 经交通协商重新规划路线：North Aisle 4 → Receiving Bay 3"],
+    ["Simulation reset: robots returned to spawn poses", "模拟已重置：机器人已返回初始位置"],
+    ["Seeded scenario 'warehouse_demo': 2 maps, 5 fleets, 17 robots", "已载入场景“warehouse_demo”：2 张地图、5 个车队、17 台机器人"],
+  ];
+  for (const [source, expected] of cases) assert.equal(t(source), expected, source);
+});
+test("task details, allocation explanations and safety messages are translated", () => {
+  const cases = [
+    ["Selected UGV-02: ≈38 s to Loading Dock 2, battery 95%, idle, traffic ≈8 s.", "已选择 UGV-02：预计 38 秒到达 Loading Dock 2，电量 95%，当前空闲，交通等待约 8 秒。"],
+    ["Selected UAV-01: ≈0 s to Drone Pad 1, battery 97%, idle. Next best UAV-04 (cost ≈1 s vs ≈0 s). Not eligible: Quadruped-01 — lacks capability charge; Quadruped-02 — lacks capability charge (+5 more).", "已选择 UAV-01：预计 0 秒到达 Drone Pad 1，电量 97%，当前空闲；次优为 UAV-04（预计耗时 1 秒，对比 0 秒）；不符合条件：Quadruped-01：缺少充电能力；Quadruped-02：缺少充电能力；另有 5 台机器人。"],
+    ["Completed by UGV-02", "已由 UGV-02 完成"],
+    ["Created by ui via operator (tool dock_robot)", "由 ui 通过 operator 创建（工具 dock_robot）"],
+    ["Re-joining the route network at Narrow Corridor South", "正在 Narrow Corridor South 重新接入路线网络"],
+    ["route blocked by UAV-02 at Receiving corridor", "路线被 UAV-02 占用，位置：Receiving corridor"],
+    ["waiting for UGV-04 to make way at Storage Rack B", "正在等待 UGV-04 在 Storage Rack B 让行"],
+    ["UGV-04 is working at South Aisle 3 (the only route); waiting for it to leave", "UGV-04 正在 South Aisle 3 作业（该位置为唯一通行路线），等待其离开"],
+    ["EMERGENCY STOP UGV-01: Operator emergency stop", "紧急停止 UGV-01：操作员触发急停"],
+    ["Emergency stop released on UGV-01", "UGV-01 的紧急停止已解除"],
+    ["Humanoid-01 is parked at Corridor South, the only route of Quadruped-01", "Humanoid-01 停靠在 Corridor South，这是 Quadruped-01 的唯一通行路线"],
+  ];
+  for (const [source, expected] of cases) assert.equal(t(source), expected, source);
+});
 test("traffic messages preserve participants and place names", () => {
   assert.equal(t("UAV-03 waiting for UAV-04, which is on Bay A"), "UAV-03 等待 UAV-04（位于 Bay A）");
   assert.equal(t("waiting for UAV-04, which goes first through Bay A"), "等待 UAV-04 优先通过 Bay A");
@@ -141,4 +178,20 @@ test("ROS connection diagnostics translate without altering interface identifier
   assert.equal(t("nothing publishes /robot/odom — is the robot / simulator running with namespace '/robot'?"), "没有发布 /robot/odom；请检查机器人或模拟器是否以命名空间“/robot”运行");
   assert.equal(t("no Nav2 action server at /robot/navigate_to_pose — is Nav2 running and active?"), "在 /robot/navigate_to_pose 未找到 Nav2 动作服务；请检查 Nav2 是否运行并已激活");
   assert.equal(t("node /nayantra_core, ROS_DOMAIN_ID=42"), "节点 /nayantra_core，ROS_DOMAIN_ID=42");
+});
+
+test("brand identity uses the company mark and bilingual product name", () => {
+  const crypto = require("node:crypto");
+  const shell = fs.readFileSync("src/components/Shell.tsx", "utf8");
+  const logo = fs.readFileSync("src/components/Logo.tsx", "utf8");
+  const index = fs.readFileSync("index.html", "utf8");
+  assert.match(shell, /清湛灵枢/);
+  assert.match(shell, /QZ LingShu/);
+  assert.match(logo, /qingzhan-mark\.png/);
+  assert.match(index, /清湛灵枢 | 多机器人调度系统/);
+  assert.match(index, /rel="icon" type="image\/png" sizes="260x260" href="\/qingzhan-mark\.png\?v=20261116"/);
+  assert.match(index, /rel="shortcut icon" type="image\/png" href="\/qingzhan-mark\.png\?v=20261116"/);
+  assert.match(index, /rel="apple-touch-icon" sizes="260x260" href="\/qingzhan-mark\.png\?v=20261116"/);
+  assert.equal(crypto.createHash("sha256").update(fs.readFileSync("public/qingzhan-mark.png")).digest("hex"), "3c685150c1501b0cb0f9a3645156464464a643aa64f57cb6fd2de27a82401fca");
+  assert.equal(t("Nayantra core restarted while this task was open; re-submit it"), "任务未完成时，清湛灵枢核心服务已重启，请重新提交任务");
 });

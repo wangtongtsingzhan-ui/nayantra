@@ -6,6 +6,7 @@ import { RegisterWizard } from "./components/RegisterWizard";
 import { ConfirmDialog, Toasts, TopBar } from "./components/Shell";
 import { TaskComposer } from "./components/TaskComposer";
 import { TaskDrawer } from "./components/TaskDrawer";
+import { AssistantPage } from "./pages/Assistant";
 import { FleetsPage } from "./pages/Fleets";
 import { MapEditorPage } from "./pages/MapEditor";
 import { OperationsPage } from "./pages/Operations";
@@ -14,7 +15,7 @@ import { connectWorld } from "./store/ws";
 import { type Page, useWorld } from "./store/world";
 
 export default function App() {
-  useLanguage();
+  const [zh] = useLanguage();
   const page = useWorld((s) => s.page);
   const theme = useWorld((s) => s.theme);
   const wizardOpen = useWorld((s) => s.wizardOpen);
@@ -22,11 +23,9 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    // The browser tab follows the app's toggle, not just the OS: swap to the matching tile.
-    const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"][type="image/svg+xml"]');
-    if (icon) icon.href = `/favicon-${theme}.svg`;
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#000000" : "#ffffff");
   }, [theme]);
+  useEffect(() => { document.documentElement.lang = zh ? "zh-CN" : "en"; }, [zh]);
   useEffect(() => {
     connectWorld();
     const onHash = () => {
@@ -42,6 +41,7 @@ export default function App() {
       <TopBar />
       <main style={{ minHeight: 0, overflow: "hidden" }}>
         {page === "operations" && <OperationsPage />}
+        {page === "assistant" && <AssistantPage />}
         {page === "fleets" && <FleetsPage />}
         {page === "robots" && <RobotsPage />}
         {page === "tasks" && <TasksPage />}

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useLanguage } from "../lib/language";
 import {
   AlertTriangle, Bot, CheckCircle2, CircleAlert, Info, LayoutDashboard, ListChecks, Map as MapIcon, Moon, OctagonX,
+  Sparkles,
   Server, ShieldAlert, Sun, Users,
 } from "lucide-react";
 import { api, isConfirmation } from "../api/client";
@@ -13,6 +14,7 @@ import { Modal, vars } from "./ui";
 
 const PAGES: { id: Page; label: string; icon: React.ReactNode }[] = [
   { id: "operations", label: "Operations", icon: <LayoutDashboard size={14} /> },
+  { id: "assistant", label: "AI Assistant", icon: <Sparkles size={14} /> },
   { id: "fleets", label: "Fleets", icon: <Users size={14} /> },
   { id: "robots", label: "Robots", icon: <Bot size={14} /> },
   { id: "tasks", label: "Tasks", icon: <ListChecks size={14} /> },
@@ -31,13 +33,22 @@ export function TopBar() {
   const toast = useWorld((s) => s.toast);
   const active = Object.values(alerts).filter((a) => a.status === "active");
   const critical = active.some((a) => a.severity === "critical" || a.severity === "error");
+  const labels: Record<Page, string> = zh
+    ? { operations: "调度", assistant: "AI 助手", fleets: "车队", robots: "机器人", tasks: "任务", map: "地图编辑", system: "系统" }
+    : Object.fromEntries(PAGES.map((item) => [item.id, item.label])) as Record<Page, string>;
   return (
     <header className="topbar">
-      <div className="brand"><Logo size={34} /> NAYANTRA</div>
+      <div className="brand">
+        <Logo size={34} />
+        <div className="brand-label">
+          <strong>{zh ? "清湛灵枢" : "QZ LingShu"}</strong>
+          <span>{zh ? "清湛智造 · 多机器人调度系统" : "Qingzhan Robotics · Multi-Robot Dispatch"}</span>
+        </div>
+      </div>
       <nav className="nav">
         {PAGES.map((p) => (
-          <button key={p.id} className={page === p.id ? "active" : ""} onClick={() => setPage(p.id)}>
-            {p.icon} {zh ? ({ operations: "调度", fleets: "车队", robots: "机器人", tasks: "任务", map: "地图编辑", system: "系统" } as Record<Page, string>)[p.id] : p.label}
+          <button key={p.id} className={page === p.id ? "active" : ""} onClick={() => setPage(p.id)} title={labels[p.id]} aria-label={labels[p.id]}>
+            {p.icon} <span className="nav-label">{labels[p.id]}</span>
           </button>
         ))}
       </nav>

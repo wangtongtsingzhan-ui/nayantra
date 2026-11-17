@@ -146,3 +146,20 @@ export interface Meta {
   task_types: Record<string, { label: string; params: Record<string, { type: string; required: boolean; default?: unknown }> }>;
   robot_type_defaults: Record<string, { capabilities: string[]; max_speed: number; radius: number; layer: Layer }>;
 }
+
+export interface AgentMissionSummary {
+  id: string; command: string; summary: string; success: boolean | number; step_count: number; created_at: number;
+  title: string | null; archive_id: string | null; archive_name: string | null; archive_purpose: AgentArchivePurpose | null; pinned: boolean | number;
+}
+export interface AgentMissionStep {
+  mission_id: string; step_index: number; tool: string; status: string; duration_ms: number | null; error: string | null;
+}
+export interface AgentMissionDetail extends AgentMissionSummary { steps: AgentMissionStep[] }
+export interface AgentStats {
+  total_missions: number; successful: number; failed: number; success_rate_pct: number; avg_duration_ms: number;
+  top_tools: { tool: string; count: number }[]; last_24h_total: number; last_24h_failed: number;
+}
+export type AgentArchivePurpose = "general" | "status_review" | "task_dispatch" | "traffic" | "safety" | "maintenance";
+export interface AgentArchive {
+  id: string; name: string; purpose: AgentArchivePurpose; created_at: number; updated_at: number; mission_count: number;
+}

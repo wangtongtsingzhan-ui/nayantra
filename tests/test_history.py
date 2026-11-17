@@ -254,3 +254,66 @@ async def test_resave_replaces_mission(store):
     assert record["summary"] == "updated summary"
     results = await store.recent()
     assert len(results) == 1  # not duplicated
+
+
+# ---------------------------------------------------------------------------
+# Conversation organisation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_archive_and_title_are_persisted(store):
+    mission = make_mission("review active alerts")
+    await store.save(mission)
+    archive = await store.create_archive("Morning review", "status_review")
+
+    updated = await store.update_mission(
+        mission.mission_id,
+        title="Morning alert review",
+        archive_id=archive["id"],
+        set_title=True,
+        set_archive=True,
+    )
+
+    assert updated is not None
+    assert updated["title"] == "Morning alert review"
+    assert updated["archive_name"] == "Morning review"
+    assert (await store.archives())[0]["mission_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_deleting_archive_keeps_missions_unarchived(store):
+    mission = make_mission()
+    await store.save(mission)
+    archive = await store.create_archive("Temporary", "maintenance")
+    await store.update_mission(mission.mission_id, archive_id=archive["id"], set_archive=True)
+
+    assert await store.delete_archive(archive["id"])
+    record = await store.get(mission.mission_id)
+    assert record is not None
+    assert record["archive_id"] is None
+    assert record["archive_name"] is None
+
+
+@pytest.mark.asyncio
+async def test_pinned_mission_is_listed_first(store):
+    older = make_mission("older")
+    newer = make_mission("newer")
+    await store.save(older)
+    await store.save(newer)
+
+    updated = await store.update_mission(older.mission_id, pinned=True, set_pinned=True)
+
+    assert updated is not None
+    assert updated["pinned"] == 1
+    assert (await store.recent())[0]["id"] == older.mission_id
+
+
+@pytest.mark.asyncio
+async def test_delete_pinned_mission(store):
+    mission = make_mission("pinned record")
+    await store.save(mission)
+    await store.update_mission(mission.mission_id, pinned=True, set_pinned=True)
+
+    assert await store.delete(mission.mission_id)
+    assert await store.get(mission.mission_id) is None
