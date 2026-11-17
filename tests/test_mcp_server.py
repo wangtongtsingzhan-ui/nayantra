@@ -109,8 +109,11 @@ async def test_list_robots_and_filter(ctx):
 async def test_get_map_lists_places_and_areas(ctx):
     m = await execute_tool(ctx, "get_map", {})
     assert m["id"] == "warehouse_demo"
-    assert any(p["name"] == "Receiving Bay 1" for p in m["places"])
-    assert {"Receiving", "Storage"} <= {a["name"] for a in m["areas"]}
+    assert any(
+        p["name"] == "收货位 1" and "Receiving Bay 1" in p["aliases"]
+        for p in m["places"]
+    )
+    assert {"收货区", "存储区"} <= {a["name"] for a in m["areas"]}
 
 
 async def test_create_task_lets_nayantra_allocate_and_traces_origin(ctx):

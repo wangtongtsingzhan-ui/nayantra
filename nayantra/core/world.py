@@ -323,7 +323,10 @@ class WorldRegistry:
                 {"candidates": [f"{w.map_id}:{w.id}" for w in matches]},
             )
         names = sorted({w.name for w in pool})
-        close = difflib.get_close_matches(ref, names, n=3, cutoff=0.5)
+        # Aliases may preserve a legacy or operator-facing language after a
+        # waypoint has been renamed. Include them in typo suggestions too.
+        candidates = sorted({name for w in pool for name in (w.name, *w.aliases)})
+        close = difflib.get_close_matches(ref, candidates, n=3, cutoff=0.5)
         raise NotFound(
             f"Unknown waypoint {ref!r}"
             + (f" on map {map_id!r}" if map_id else "")

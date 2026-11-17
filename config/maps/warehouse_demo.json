@@ -761,7 +761,9 @@
       "yaw": 1.5708,
       "type": "pickup",
       "layer": "ground",
-      "aliases": [],
+      "aliases": [
+        "Receiving Bay 2"
+      ],
       "metadata": {}
     },
     {
@@ -824,7 +826,8 @@
       "type": "dock",
       "layer": "ground",
       "aliases": [
-        "loading_zone"
+        "loading_zone",
+        "Loading Dock 1"
       ],
       "metadata": {}
     },
