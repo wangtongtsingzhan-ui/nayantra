@@ -1,15 +1,15 @@
 {
-  "name": "Gazebo Warehouse + Nav2",
-  "description": "Three UGVs in a Gazebo Harmonic warehouse, each with its own Nav2 stack under /ugv_01, /ugv_02 and /ugv_03 (bash scripts/run_gazebo.sh sim). Needs ROS 2 sourced in the core's shell, same ROS_DOMAIN_ID.",
+  "name": "Gazebo 仓库 + Nav2",
+  "description": "Gazebo Harmonic 仓库中的 3 台清湛 UGV，各自使用 /ugv_01、/ugv_02 和 /ugv_03 下的 Nav2 栈（bash scripts/run_gazebo.sh sim）。核心服务的 Shell 需加载 ROS 2 并使用相同的 ROS_DOMAIN_ID。",
   "maps": [
     "../maps/gazebo_warehouse.json"
   ],
   "fleets": [
     {
       "id": "gazebo_fleet",
-      "name": "Gazebo UGV Fleet (Nav2)",
+      "name": "tsingbot UGV 车队（Nav2）",
       "robot_type": "ugv",
-      "description": "Differential-drive UGVs in the Gazebo warehouse, driven through Nav2 (ROS 2 Humble or Jazzy).",
+      "description": "Gazebo 仓库中的清湛差速 UGV，通过 Nav2（ROS 2 Humble 或 Jazzy）控制。",
       "color": "#f5a623",
       "capabilities": [
         "navigate",
@@ -55,10 +55,10 @@
   "robots": [
     {
       "id": "ugv_01",
-      "name": "GZ UGV-1",
+      "name": "tsingbot UGV-01",
       "fleet_id": "gazebo_fleet",
-      "manufacturer": "Nayantra",
-      "model": "nayantra_ugv",
+      "manufacturer": "清湛机器人",
+      "model": "清湛 UGV（Gazebo 仿真）",
       "navigation": {
         "map_id": "gazebo_warehouse",
         "namespace": "ugv_01",
@@ -80,10 +80,10 @@
     },
     {
       "id": "ugv_02",
-      "name": "GZ UGV-2",
+      "name": "tsingbot UGV-02",
       "fleet_id": "gazebo_fleet",
-      "manufacturer": "Nayantra",
-      "model": "nayantra_ugv",
+      "manufacturer": "清湛机器人",
+      "model": "清湛 UGV（Gazebo 仿真）",
       "navigation": {
         "map_id": "gazebo_warehouse",
         "namespace": "ugv_02",
@@ -105,10 +105,10 @@
     },
     {
       "id": "ugv_03",
-      "name": "GZ UGV-3",
+      "name": "tsingbot UGV-03",
       "fleet_id": "gazebo_fleet",
-      "manufacturer": "Nayantra",
-      "model": "nayantra_ugv",
+      "manufacturer": "清湛机器人",
+      "model": "清湛 UGV（Gazebo 仿真）",
       "navigation": {
         "map_id": "gazebo_warehouse",
         "namespace": "ugv_03",

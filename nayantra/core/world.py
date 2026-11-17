@@ -74,7 +74,9 @@ def _merge(model: BaseModel, patch: BaseModel) -> dict[str, Any]:
 
 
 def norm_name(text: str) -> str:
-    return slugify(text)
+    # Waypoint names are user-facing and may be Chinese; IDs and capability
+    # slugs intentionally retain their separate ASCII-only validation rules.
+    return re.sub(r"[^\w]+", "_", text.strip().casefold(), flags=re.UNICODE).strip("_") or "item"
 
 
 class WorldRegistry:

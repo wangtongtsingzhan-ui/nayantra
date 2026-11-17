@@ -17,7 +17,7 @@ const TYPE_DESC: Record<string, string> = {
   other: "Anything else",
 };
 const PROTOCOLS: { id: string; label: string; desc: string }[] = [
-  { id: "simulation", label: "Simulation", desc: "Nayantra's built-in kinematic simulator" },
+  { id: "simulation", label: "Simulation", desc: "QZ LingShu's built-in kinematic simulator" },
   { id: "ros2", label: "ROS 2", desc: "Nav2 over DDS (Isaac Sim, Gazebo, hardware)" },
   { id: "isaac_demo", label: "Isaac demo HTTP", desc: "scripts/isaac_demo.py control API" },
   { id: "mqtt", label: "MQTT", desc: "Not implemented yet" },
@@ -324,7 +324,7 @@ export function RegisterWizard() {
       case 5:
         return (
           <div className="col" style={{ gap: 12 }}>
-            <div className="muted">{translateUI("How does Nayantra talk to this robot?")}</div>
+            <div className="muted">{translateUI("How does QZ LingShu talk to this robot?")}</div>
             <div className="choice">
               {PROTOCOLS.map((p) => (
                 <button key={p.id} className={comm.protocol === p.id ? "on" : ""} onClick={() => { setComm({ ...comm, protocol: p.id }); if (p.id === "simulation") setNav((n) => ({ ...n, stack: "kinematic_sim", localization: "ground_truth" })); }}>

@@ -3,8 +3,7 @@ import { useEffect, useState } from "react";
 import type { ChatStep } from "../store/chat";
 import { Logo } from "./Logo";
 
-/** The Nayantra logo in motion while the assistant works: a glint runs along its orbit and the star
- *  twinkles (see .logo.live in styles.css). It settles into the static logo when the answer arrives. */
+/** Animate the company mark while the assistant is working. */
 export function ThinkingIcon({ size = 30 }: { size?: number }) {
   return <Logo size={size} live title={translateUI("Working")} />;
 }

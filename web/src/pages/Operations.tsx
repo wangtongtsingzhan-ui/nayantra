@@ -114,7 +114,7 @@ export function OperationsPage() {
             }}
           />
         ) : (
-          <Empty>{s.loaded ? translateUI("No maps yet — create one in the Map editor.") : translateUI("Connecting to Nayantra Core…")}</Empty>
+          <Empty>{s.loaded ? translateUI("No maps yet — create one in the Map editor.") : translateUI("Connecting to QZ LingShu Core…")}</Empty>
         )}
         {map && <MapChrome control={control} cursor={cursor} pxPerM={pxPerM} />}
         <ConflictFlashes />

@@ -1,7 +1,7 @@
 {
   "id": "isaac_warehouse",
-  "name": "Isaac Simple Warehouse",
-  "description": "Map frame of the Isaac Sim Simple_Warehouse scene used by the Carter + Nav2 demo (scripts/run_demo.sh). Waypoints consolidate the legacy tables from the RMF bridge, isaac_demo.py and nav_cli.py.",
+  "name": "Isaac 简易仓库",
+  "description": "用于 Carter + Nav2 演示的 Isaac Sim Simple_Warehouse 场景地图坐标系。路径点整合自 RMF 桥接、isaac_demo.py 和 nav_cli.py 的历史配置。",
   "frame": "map",
   "bounds": {
     "min_x": -12,
@@ -14,7 +14,7 @@
   "waypoints": [
     {
       "id": "elevator_lobby",
-      "name": "Elevator Lobby",
+      "name": "电梯厅",
       "x": 0.0,
       "y": 0.0,
       "z": 0.0,
@@ -29,7 +29,7 @@
     },
     {
       "id": "zone_a",
-      "name": "Zone A",
+      "name": "区域 A",
       "x": -3.0,
       "y": 2.0,
       "z": 0.0,
@@ -43,7 +43,7 @@
     },
     {
       "id": "zone_b",
-      "name": "Zone B",
+      "name": "区域 B",
       "x": 3.0,
       "y": 2.0,
       "z": 0.0,
@@ -57,7 +57,7 @@
     },
     {
       "id": "zone_c",
-      "name": "Zone C",
+      "name": "区域 C",
       "x": 0.0,
       "y": -2.0,
       "z": 0.0,
@@ -69,7 +69,7 @@
     },
     {
       "id": "charging_dock",
-      "name": "Charging Dock",
+      "name": "充电停靠点",
       "x": -5.0,
       "y": -2.0,
       "z": 0.0,
@@ -81,7 +81,7 @@
     },
     {
       "id": "pick_station_1",
-      "name": "Pick Station 1",
+      "name": "取货站 1",
       "x": -5.0,
       "y": 2.0,
       "z": 0.0,
@@ -93,7 +93,7 @@
     },
     {
       "id": "drop_station_1",
-      "name": "Drop Station 1",
+      "name": "放货站 1",
       "x": 5.0,
       "y": -2.0,
       "z": 0.0,
@@ -107,7 +107,7 @@
     },
     {
       "id": "entrance",
-      "name": "Entrance",
+      "name": "入口",
       "x": -6.0,
       "y": 0.0,
       "z": 0.0,
@@ -121,7 +121,7 @@
     },
     {
       "id": "loading_dock",
-      "name": "Loading Dock",
+      "name": "装货码头",
       "x": 6.0,
       "y": -2.0,
       "z": 0.0,
@@ -133,7 +133,7 @@
     },
     {
       "id": "meeting_room",
-      "name": "Meeting Room",
+      "name": "会议室",
       "x": 5.0,
       "y": 2.0,
       "z": 0.0,
@@ -145,7 +145,7 @@
     },
     {
       "id": "shelf_1",
-      "name": "Shelf 1",
+      "name": "货架 1",
       "x": 4.0,
       "y": 3.0,
       "z": 0.0,
@@ -157,7 +157,7 @@
     },
     {
       "id": "shelf_2",
-      "name": "Shelf 2",
+      "name": "货架 2",
       "x": -4.0,
       "y": 3.0,
       "z": 0.0,

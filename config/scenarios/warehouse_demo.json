@@ -1,6 +1,6 @@
 {
-  "name": "Warehouse A \u2014 multi-fleet demo",
-  "description": "4 UGVs, 4 UAVs, 4 quadrupeds and 4 humanoids on the built-in kinematic simulator. Deliveries from receiving to storage exercise allocation and traffic coordination (intersections, the narrow corridor, the restricted HV area).",
+  "name": "A仓库多车队演示",
+  "description": "内置运动学模拟器中的 4 台清湛 UGV、4 台清湛 UAV、4 台清湛四足机器人和 4 台清湛人形机器人。收货至存储的配送任务用于演示任务分配与交通协调。",
   "maps": [
     "../maps/warehouse_demo.json",
     "../maps/isaac_warehouse.json"
@@ -8,9 +8,9 @@
   "fleets": [
     {
       "id": "warehouse_ugv",
-      "name": "Warehouse UGV Fleet",
+      "name": "tsingbot UGV 车队",
       "robot_type": "ugv",
-      "description": "Differential-drive tuggers moving goods from receiving to storage.",
+      "description": "清湛 UGV 负责收货区至存储区的货物转运。",
       "color": "#22d3ee",
       "capabilities": [
         "navigate",
@@ -58,9 +58,9 @@
     },
     {
       "id": "inspection_uav",
-      "name": "Inspection UAV Fleet",
+      "name": "tsingbot UAV 车队",
       "robot_type": "uav",
-      "description": "Quadcopters for rack inspection and overwatch. Fly layered air corridors.",
+      "description": "清湛 UAV 用于货架巡检和空中巡查，沿分层空中通道飞行。",
       "color": "#fbbf24",
       "capabilities": [
         "navigate",
@@ -109,9 +109,9 @@
     },
     {
       "id": "security_quadruped",
-      "name": "Security Quadruped Fleet",
+      "name": "tsingbot 四足机器人车队",
       "robot_type": "quadruped",
-      "description": "Legged robots for patrol and inspection rounds.",
+      "description": "清湛四足机器人用于巡逻与巡检。",
       "color": "#4ade80",
       "capabilities": [
         "navigate",
@@ -156,9 +156,9 @@
     },
     {
       "id": "assembly_humanoid",
-      "name": "Assembly Humanoid Fleet",
+      "name": "tsingbot 人形机器人车队",
       "robot_type": "humanoid",
-      "description": "Bipedal humanoids for light picking and manipulation at storage.",
+      "description": "清湛人形机器人用于存储区的轻型拣选与操作。",
       "color": "#c084fc",
       "capabilities": [
         "navigate",
@@ -207,10 +207,10 @@
   "robots": [
     {
       "id": "ugv_01",
-      "name": "UGV-01",
+      "name": "tsingbot UGV-01",
       "fleet_id": "warehouse_ugv",
-      "manufacturer": "Nayantra Sim",
-      "model": "Tugger T1 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛 UGV（运动学仿真）",
       "physical": {
         "payload_kg": 150,
         "battery_wh": 1200,
@@ -235,10 +235,10 @@
     },
     {
       "id": "ugv_02",
-      "name": "UGV-02",
+      "name": "tsingbot UGV-02",
       "fleet_id": "warehouse_ugv",
-      "manufacturer": "Nayantra Sim",
-      "model": "Tugger T1 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛 UGV（运动学仿真）",
       "physical": {
         "payload_kg": 150,
         "battery_wh": 1200,
@@ -263,10 +263,10 @@
     },
     {
       "id": "ugv_03",
-      "name": "UGV-03",
+      "name": "tsingbot UGV-03",
       "fleet_id": "warehouse_ugv",
-      "manufacturer": "Nayantra Sim",
-      "model": "Tugger T1 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛 UGV（运动学仿真）",
       "physical": {
         "payload_kg": 150,
         "battery_wh": 1200,
@@ -291,10 +291,10 @@
     },
     {
       "id": "ugv_04",
-      "name": "UGV-04",
+      "name": "tsingbot UGV-04",
       "fleet_id": "warehouse_ugv",
-      "manufacturer": "Nayantra Sim",
-      "model": "Tugger T1 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛 UGV（运动学仿真）",
       "physical": {
         "payload_kg": 150,
         "battery_wh": 1200,
@@ -319,10 +319,10 @@
     },
     {
       "id": "uav_01",
-      "name": "UAV-01",
+      "name": "tsingbot UAV-01",
       "fleet_id": "inspection_uav",
-      "manufacturer": "Nayantra Sim",
-      "model": "Quad X4 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛 UAV（运动学仿真）",
       "physical": {
         "payload_kg": 1.5,
         "battery_wh": 180,
@@ -347,10 +347,10 @@
     },
     {
       "id": "uav_02",
-      "name": "UAV-02",
+      "name": "tsingbot UAV-02",
       "fleet_id": "inspection_uav",
-      "manufacturer": "Nayantra Sim",
-      "model": "Quad X4 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛 UAV（运动学仿真）",
       "physical": {
         "payload_kg": 1.5,
         "battery_wh": 180,
@@ -375,10 +375,10 @@
     },
     {
       "id": "uav_03",
-      "name": "UAV-03",
+      "name": "tsingbot UAV-03",
       "fleet_id": "inspection_uav",
-      "manufacturer": "Nayantra Sim",
-      "model": "Quad X4 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛 UAV（运动学仿真）",
       "physical": {
         "payload_kg": 1.5,
         "battery_wh": 180,
@@ -403,10 +403,10 @@
     },
     {
       "id": "uav_04",
-      "name": "UAV-04",
+      "name": "tsingbot UAV-04",
       "fleet_id": "inspection_uav",
-      "manufacturer": "Nayantra Sim",
-      "model": "Quad X4 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛 UAV（运动学仿真）",
       "physical": {
         "payload_kg": 1.5,
         "battery_wh": 180,
@@ -431,10 +431,10 @@
     },
     {
       "id": "quad_01",
-      "name": "Quadruped-01",
+      "name": "tsingbot 四足机器人-01",
       "fleet_id": "security_quadruped",
-      "manufacturer": "Nayantra Sim",
-      "model": "Legged L4 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛四足机器人（运动学仿真）",
       "physical": {
         "payload_kg": 10,
         "battery_wh": 600,
@@ -458,10 +458,10 @@
     },
     {
       "id": "quad_02",
-      "name": "Quadruped-02",
+      "name": "tsingbot 四足机器人-02",
       "fleet_id": "security_quadruped",
-      "manufacturer": "Nayantra Sim",
-      "model": "Legged L4 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛四足机器人（运动学仿真）",
       "physical": {
         "payload_kg": 10,
         "battery_wh": 600,
@@ -485,10 +485,10 @@
     },
     {
       "id": "quad_03",
-      "name": "Quadruped-03",
+      "name": "tsingbot 四足机器人-03",
       "fleet_id": "security_quadruped",
-      "manufacturer": "Nayantra Sim",
-      "model": "Legged L4 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛四足机器人（运动学仿真）",
       "physical": {
         "payload_kg": 10,
         "battery_wh": 600,
@@ -512,10 +512,10 @@
     },
     {
       "id": "quad_04",
-      "name": "Quadruped-04",
+      "name": "tsingbot 四足机器人-04",
       "fleet_id": "security_quadruped",
-      "manufacturer": "Nayantra Sim",
-      "model": "Legged L4 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛四足机器人（运动学仿真）",
       "physical": {
         "payload_kg": 10,
         "battery_wh": 600,
@@ -539,10 +539,10 @@
     },
     {
       "id": "hum_01",
-      "name": "Humanoid-01",
+      "name": "tsingbot 人形机器人-01",
       "fleet_id": "assembly_humanoid",
-      "manufacturer": "Nayantra Sim",
-      "model": "Biped H2 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛人形机器人（运动学仿真）",
       "physical": {
         "payload_kg": 15,
         "battery_wh": 800,
@@ -566,10 +566,10 @@
     },
     {
       "id": "hum_02",
-      "name": "Humanoid-02",
+      "name": "tsingbot 人形机器人-02",
       "fleet_id": "assembly_humanoid",
-      "manufacturer": "Nayantra Sim",
-      "model": "Biped H2 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛人形机器人（运动学仿真）",
       "physical": {
         "payload_kg": 15,
         "battery_wh": 800,
@@ -593,10 +593,10 @@
     },
     {
       "id": "hum_03",
-      "name": "Humanoid-03",
+      "name": "tsingbot 人形机器人-03",
       "fleet_id": "assembly_humanoid",
-      "manufacturer": "Nayantra Sim",
-      "model": "Biped H2 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛人形机器人（运动学仿真）",
       "physical": {
         "payload_kg": 15,
         "battery_wh": 800,
@@ -620,10 +620,10 @@
     },
     {
       "id": "hum_04",
-      "name": "Humanoid-04",
+      "name": "tsingbot 人形机器人-04",
       "fleet_id": "assembly_humanoid",
-      "manufacturer": "Nayantra Sim",
-      "model": "Biped H2 (kinematic sim)",
+      "manufacturer": "清湛机器人",
+      "model": "清湛人形机器人（运动学仿真）",
       "physical": {
         "payload_kg": 15,
         "battery_wh": 800,

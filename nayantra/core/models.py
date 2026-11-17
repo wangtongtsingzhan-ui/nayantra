@@ -12,6 +12,7 @@ All ids are short slugs so they read well in logs and explanations
 
 from __future__ import annotations
 
+import hashlib
 import re
 import time
 import uuid
@@ -29,7 +30,11 @@ def new_id(prefix: str) -> str:
 
 def slugify(text: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "_", text.strip().lower()).strip("_")
-    return slug[:64] or "item"
+    if slug:
+        return slug[:64]
+    # Public IDs stay ASCII even when the user-facing name is entirely CJK.
+    # The digest prevents every such name from collapsing to the same "item" ID.
+    return f"item_{hashlib.sha1(text.encode('utf-8')).hexdigest()[:12]}"
 
 
 def _check_id(value: str) -> str:

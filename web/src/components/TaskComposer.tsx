@@ -176,7 +176,7 @@ export function TaskComposer() {
         </div>
         <Field label={translateUI("Who does it?")}>
           <div className="chips">
-            <button className={`chip${target === "auto" ? " on" : ""}`} onClick={() => setTarget("auto")}>{translateUI("Let Nayantra choose")}</button>
+            <button className={`chip${target === "auto" ? " on" : ""}`} onClick={() => setTarget("auto")}>{translateUI("Let QZ LingShu choose")}</button>
             <button className={`chip${target === "fleet" ? " on" : ""}`} onClick={() => setTarget("fleet")}>{translateUI("A specific fleet")}</button>
             <button className={`chip${target === "robots" ? " on" : ""}`} onClick={() => setTarget("robots")}>{translateUI("Specific robots")}</button>
           </div>

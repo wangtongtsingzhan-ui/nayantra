@@ -37,7 +37,7 @@ export function translateUI(text: string): string {
   const requested = /^Confirmation needed: (.+) \(requested by ui\)$/.exec(text);
   if (requested) return `需要确认：${translateUI(requested[1])}（由操作界面请求）`;
   const start = /^Nayantra core (.+) started: (\d+) fleets, (\d+) robots, (\d+) maps$/.exec(text);
-  if (start) return `Nayantra 核心 ${start[1]} 已启动：${start[2]} 个车队、${start[3]} 台机器人、${start[4]} 张地图`;
+  if (start) return `清湛灵枢核心服务 ${start[1]} 已启动：${start[2]} 个车队、${start[3]} 台机器人、${start[4]} 张地图`;
   return translateOperationalText(text);
 }
 

@@ -1,7 +1,7 @@
 {
   "id": "gazebo_warehouse",
-  "name": "Gazebo Warehouse",
-  "description": "24 x 16 m warehouse floor for the Gazebo (Harmonic) simulation: four shelf rows, a main aisle, a north and a south loop, two docks and a charger. simulation/gazebo/generate_world.py builds the SDF world from this file, so the map and the physical world cannot drift apart.",
+  "name": "Gazebo 仓库",
+  "description": "用于 Gazebo（Harmonic）仿真的 24 × 16 米仓库：包含四排货架、主通道、南北环线、两个码头和一个充电桩。simulation/gazebo/generate_world.py 由此文件生成 SDF 场景，确保地图与物理场景一致。",
   "frame": "map",
   "bounds": {
     "min_x": -12,
@@ -110,7 +110,7 @@
   "waypoints": [
     {
       "id": "hub",
-      "name": "Hub",
+      "name": "枢纽",
       "x": 0.0,
       "y": 0.0,
       "z": 0.0,
@@ -124,7 +124,7 @@
     },
     {
       "id": "recv_dock",
-      "name": "Receiving Dock",
+      "name": "收货码头",
       "x": -10.5,
       "y": 0.0,
       "z": 0.0,
@@ -139,7 +139,7 @@
     },
     {
       "id": "ship_dock",
-      "name": "Shipping Dock",
+      "name": "发货码头",
       "x": 10.5,
       "y": 0.0,
       "z": 0.0,
@@ -154,7 +154,7 @@
     },
     {
       "id": "west_aisle",
-      "name": "West Aisle",
+      "name": "西侧通道",
       "x": -6.0,
       "y": 0.0,
       "z": 0.0,
@@ -166,7 +166,7 @@
     },
     {
       "id": "east_aisle",
-      "name": "East Aisle",
+      "name": "东侧通道",
       "x": 6.0,
       "y": 0.0,
       "z": 0.0,
@@ -178,7 +178,7 @@
     },
     {
       "id": "pick_a",
-      "name": "Pick Station A",
+      "name": "取货站 A",
       "x": -6.0,
       "y": 1.5,
       "z": 0.0,
@@ -193,7 +193,7 @@
     },
     {
       "id": "pick_b",
-      "name": "Pick Station B",
+      "name": "取货站 B",
       "x": 6.0,
       "y": 1.5,
       "z": 0.0,
@@ -208,7 +208,7 @@
     },
     {
       "id": "drop_a",
-      "name": "Drop Station A",
+      "name": "放货站 A",
       "x": -6.0,
       "y": -1.5,
       "z": 0.0,
@@ -222,7 +222,7 @@
     },
     {
       "id": "drop_b",
-      "name": "Drop Station B",
+      "name": "放货站 B",
       "x": 6.0,
       "y": -1.5,
       "z": 0.0,
@@ -236,7 +236,7 @@
     },
     {
       "id": "north_west",
-      "name": "North West Corner",
+      "name": "西北角",
       "x": -10.5,
       "y": 5.5,
       "z": 0.0,
@@ -248,7 +248,7 @@
     },
     {
       "id": "north_mid",
-      "name": "North Aisle",
+      "name": "北侧通道",
       "x": 0.0,
       "y": 5.5,
       "z": 0.0,
@@ -260,7 +260,7 @@
     },
     {
       "id": "north_east",
-      "name": "North East Corner",
+      "name": "东北角",
       "x": 10.5,
       "y": 5.5,
       "z": 0.0,
@@ -272,7 +272,7 @@
     },
     {
       "id": "south_mid",
-      "name": "South Aisle",
+      "name": "南侧通道",
       "x": 0.0,
       "y": -5.5,
       "z": 0.0,
@@ -284,7 +284,7 @@
     },
     {
       "id": "south_east",
-      "name": "South East Corner",
+      "name": "东南角",
       "x": 10.5,
       "y": -5.5,
       "z": 0.0,
@@ -296,7 +296,7 @@
     },
     {
       "id": "charger",
-      "name": "Charger 1",
+      "name": "充电桩 1",
       "x": -10.5,
       "y": -5.5,
       "z": 0.0,
@@ -513,7 +513,7 @@
   "zones": [
     {
       "id": "hub_slow",
-      "name": "Hub (slow)",
+      "name": "枢纽（限速）",
       "type": "slow",
       "polygon": [
         [

@@ -1,7 +1,7 @@
 {
   "id": "warehouse_demo",
-  "name": "Warehouse A",
-  "description": "40 x 24 m multi-fleet demo warehouse: receiving, storage, charging, loading, a narrow single-width corridor, a restricted high-voltage area and a drone bay with layered air corridors.",
+  "name": "A仓库",
+  "description": "40 × 24 米多车队演示仓库：包含收货、存储、充电、装货、单车宽狭窄走廊、高压限制区，以及分层空中通道的无人机停机区。",
   "frame": "map",
   "bounds": {
     "min_x": 0,
@@ -316,7 +316,7 @@
   "waypoints": [
     {
       "id": "NA1",
-      "name": "North Aisle 1",
+      "name": "北侧通道 1",
       "x": 2,
       "y": 15.0,
       "z": 0.0,
@@ -328,7 +328,7 @@
     },
     {
       "id": "SA1",
-      "name": "South Aisle 1",
+      "name": "南侧通道 1",
       "x": 2,
       "y": 4.5,
       "z": 0.0,
@@ -340,7 +340,7 @@
     },
     {
       "id": "NA2",
-      "name": "North Aisle 2",
+      "name": "北侧通道 2",
       "x": 4.5,
       "y": 15.0,
       "z": 0.0,
@@ -352,7 +352,7 @@
     },
     {
       "id": "SA2",
-      "name": "South Aisle 2",
+      "name": "南侧通道 2",
       "x": 4.5,
       "y": 4.5,
       "z": 0.0,
@@ -364,7 +364,7 @@
     },
     {
       "id": "NA3",
-      "name": "North Aisle 3",
+      "name": "北侧通道 3",
       "x": 7,
       "y": 15.0,
       "z": 0.0,
@@ -376,7 +376,7 @@
     },
     {
       "id": "SA3",
-      "name": "South Aisle 3",
+      "name": "南侧通道 3",
       "x": 7,
       "y": 4.5,
       "z": 0.0,
@@ -388,7 +388,7 @@
     },
     {
       "id": "NA4",
-      "name": "North Aisle 4",
+      "name": "北侧通道 4",
       "x": 9.5,
       "y": 15.0,
       "z": 0.0,
@@ -400,7 +400,7 @@
     },
     {
       "id": "SA4",
-      "name": "South Aisle 4",
+      "name": "南侧通道 4",
       "x": 9.5,
       "y": 4.5,
       "z": 0.0,
@@ -412,19 +412,21 @@
     },
     {
       "id": "NA5",
-      "name": "Intersection 1",
+      "name": "交叉口 1",
       "x": 14,
       "y": 15.0,
       "z": 0.0,
       "yaw": 0.0,
       "type": "intersection",
       "layer": "ground",
-      "aliases": [],
+      "aliases": [
+        "Intersection 1"
+      ],
       "metadata": {}
     },
     {
       "id": "SA5",
-      "name": "Intersection 4",
+      "name": "交叉口 4",
       "x": 14,
       "y": 4.5,
       "z": 0.0,
@@ -436,7 +438,7 @@
     },
     {
       "id": "NA6",
-      "name": "Intersection 2",
+      "name": "交叉口 2",
       "x": 20,
       "y": 15.0,
       "z": 0.0,
@@ -448,7 +450,7 @@
     },
     {
       "id": "SA6",
-      "name": "Corridor South",
+      "name": "走廊南端",
       "x": 20,
       "y": 4.5,
       "z": 0.0,
@@ -460,7 +462,7 @@
     },
     {
       "id": "NA7",
-      "name": "North Aisle 7",
+      "name": "北侧通道 7",
       "x": 26,
       "y": 15.0,
       "z": 0.0,
@@ -472,7 +474,7 @@
     },
     {
       "id": "SA7",
-      "name": "South Aisle 7",
+      "name": "南侧通道 7",
       "x": 26,
       "y": 4.5,
       "z": 0.0,
@@ -484,7 +486,7 @@
     },
     {
       "id": "NA8",
-      "name": "Intersection 3",
+      "name": "交叉口 3",
       "x": 29,
       "y": 15.0,
       "z": 0.0,
@@ -496,7 +498,7 @@
     },
     {
       "id": "SA8",
-      "name": "Intersection 5",
+      "name": "交叉口 5",
       "x": 29,
       "y": 4.5,
       "z": 0.0,
@@ -508,7 +510,7 @@
     },
     {
       "id": "NA9",
-      "name": "North Aisle 9",
+      "name": "北侧通道 9",
       "x": 32,
       "y": 15.0,
       "z": 0.0,
@@ -520,7 +522,7 @@
     },
     {
       "id": "SA9",
-      "name": "South Aisle 9",
+      "name": "南侧通道 9",
       "x": 32,
       "y": 4.5,
       "z": 0.0,
@@ -532,7 +534,7 @@
     },
     {
       "id": "NA10",
-      "name": "North Aisle 10",
+      "name": "北侧通道 10",
       "x": 35,
       "y": 15.0,
       "z": 0.0,
@@ -544,7 +546,7 @@
     },
     {
       "id": "SA10",
-      "name": "South Aisle 10",
+      "name": "南侧通道 10",
       "x": 35,
       "y": 4.5,
       "z": 0.0,
@@ -556,7 +558,7 @@
     },
     {
       "id": "NA11",
-      "name": "North Aisle 11",
+      "name": "北侧通道 11",
       "x": 38,
       "y": 15.0,
       "z": 0.0,
@@ -568,7 +570,7 @@
     },
     {
       "id": "SA11",
-      "name": "South Aisle 11",
+      "name": "南侧通道 11",
       "x": 38,
       "y": 4.5,
       "z": 0.0,
@@ -580,7 +582,7 @@
     },
     {
       "id": "WC1",
-      "name": "West Connector 1",
+      "name": "西侧连接通道 1",
       "x": 2.0,
       "y": 8.0,
       "z": 0.0,
@@ -592,7 +594,7 @@
     },
     {
       "id": "WC2",
-      "name": "West Connector 2",
+      "name": "西侧连接通道 2",
       "x": 2.0,
       "y": 11.5,
       "z": 0.0,
@@ -604,7 +606,7 @@
     },
     {
       "id": "MC1",
-      "name": "Mid Connector 1",
+      "name": "中部连接通道 1",
       "x": 14.0,
       "y": 8.0,
       "z": 0.0,
@@ -616,7 +618,7 @@
     },
     {
       "id": "MC2",
-      "name": "Mid Connector 2",
+      "name": "中部连接通道 2",
       "x": 14.0,
       "y": 11.5,
       "z": 0.0,
@@ -628,7 +630,7 @@
     },
     {
       "id": "K1",
-      "name": "Narrow Corridor South",
+      "name": "狭窄走廊南端",
       "x": 20.0,
       "y": 8.0,
       "z": 0.0,
@@ -640,7 +642,7 @@
     },
     {
       "id": "K2",
-      "name": "Narrow Corridor North",
+      "name": "狭窄走廊北端",
       "x": 20.0,
       "y": 11.5,
       "z": 0.0,
@@ -652,19 +654,21 @@
     },
     {
       "id": "RX1",
-      "name": "HV Maintenance Point",
+      "name": "高压维护点",
       "x": 29.0,
       "y": 9.75,
       "z": 0.0,
       "yaw": 0.0,
       "type": "inspection",
       "layer": "ground",
-      "aliases": [],
+      "aliases": [
+        "HV Maintenance Point"
+      ],
       "metadata": {}
     },
     {
       "id": "EC1",
-      "name": "East Connector 1",
+      "name": "东侧连接通道 1",
       "x": 38.0,
       "y": 8.0,
       "z": 0.0,
@@ -676,7 +680,7 @@
     },
     {
       "id": "EC2",
-      "name": "East Connector 2",
+      "name": "东侧连接通道 2",
       "x": 38.0,
       "y": 11.5,
       "z": 0.0,
@@ -688,7 +692,7 @@
     },
     {
       "id": "CH1",
-      "name": "Charger 1",
+      "name": "充电桩 1",
       "x": 2,
       "y": 1.8,
       "z": 0.0,
@@ -700,7 +704,7 @@
     },
     {
       "id": "CH2",
-      "name": "Charger 2",
+      "name": "充电桩 2",
       "x": 4.5,
       "y": 1.8,
       "z": 0.0,
@@ -712,7 +716,7 @@
     },
     {
       "id": "CH3",
-      "name": "Charger 3",
+      "name": "充电桩 3",
       "x": 7,
       "y": 1.8,
       "z": 0.0,
@@ -724,7 +728,7 @@
     },
     {
       "id": "CH4",
-      "name": "Charger 4",
+      "name": "充电桩 4",
       "x": 9.5,
       "y": 1.8,
       "z": 0.0,
@@ -736,19 +740,21 @@
     },
     {
       "id": "RC1",
-      "name": "Receiving Bay 1",
+      "name": "收货位 1",
       "x": 2,
       "y": 19.5,
       "z": 0.0,
       "yaw": 1.5708,
       "type": "pickup",
       "layer": "ground",
-      "aliases": [],
+      "aliases": [
+        "Receiving Bay 1"
+      ],
       "metadata": {}
     },
     {
       "id": "RC2",
-      "name": "Receiving Bay 2",
+      "name": "收货位 2",
       "x": 4.5,
       "y": 19.5,
       "z": 0.0,
@@ -760,7 +766,7 @@
     },
     {
       "id": "RC3",
-      "name": "Receiving Bay 3",
+      "name": "收货位 3",
       "x": 7,
       "y": 19.5,
       "z": 0.0,
@@ -772,7 +778,7 @@
     },
     {
       "id": "ST1",
-      "name": "Storage Rack A",
+      "name": "存储货架甲",
       "x": 29,
       "y": 19.5,
       "z": 0.0,
@@ -784,7 +790,7 @@
     },
     {
       "id": "ST2",
-      "name": "Storage Rack B",
+      "name": "存储货架乙",
       "x": 32,
       "y": 19.5,
       "z": 0.0,
@@ -796,19 +802,21 @@
     },
     {
       "id": "ST3",
-      "name": "Storage Rack C",
+      "name": "存储货架丙",
       "x": 35,
       "y": 19.5,
       "z": 0.0,
       "yaw": 1.5708,
       "type": "dropoff",
       "layer": "ground",
-      "aliases": [],
+      "aliases": [
+        "Storage Rack C"
+      ],
       "metadata": {}
     },
     {
       "id": "LD1",
-      "name": "Loading Dock 1",
+      "name": "装货码头 1",
       "x": 32.0,
       "y": 1.8,
       "z": 0.0,
@@ -822,7 +830,7 @@
     },
     {
       "id": "LD2",
-      "name": "Loading Dock 2",
+      "name": "装货码头 2",
       "x": 35.0,
       "y": 1.8,
       "z": 0.0,
@@ -834,7 +842,7 @@
     },
     {
       "id": "QP1",
-      "name": "Quadruped Bay 1",
+      "name": "四足机器人停靠位 1",
       "x": 4.5,
       "y": 8.0,
       "z": 0.0,
@@ -846,7 +854,7 @@
     },
     {
       "id": "QP2",
-      "name": "Quadruped Bay 2",
+      "name": "四足机器人停靠位 2",
       "x": 4.5,
       "y": 11.5,
       "z": 0.0,
@@ -858,7 +866,7 @@
     },
     {
       "id": "QP3",
-      "name": "Quadruped Bay 3",
+      "name": "四足机器人停靠位 3",
       "x": 11.5,
       "y": 8.0,
       "z": 0.0,
@@ -870,7 +878,7 @@
     },
     {
       "id": "QP4",
-      "name": "Quadruped Bay 4",
+      "name": "四足机器人停靠位 4",
       "x": 11.5,
       "y": 11.5,
       "z": 0.0,
@@ -882,7 +890,7 @@
     },
     {
       "id": "HP1",
-      "name": "Humanoid Bay 1",
+      "name": "人形机器人停靠位 1",
       "x": 16.5,
       "y": 8.0,
       "z": 0.0,
@@ -894,7 +902,7 @@
     },
     {
       "id": "HP2",
-      "name": "Humanoid Bay 2",
+      "name": "人形机器人停靠位 2",
       "x": 16.5,
       "y": 11.5,
       "z": 0.0,
@@ -906,7 +914,7 @@
     },
     {
       "id": "HP3",
-      "name": "Humanoid Bay 3",
+      "name": "人形机器人停靠位 3",
       "x": 35.5,
       "y": 8.0,
       "z": 0.0,
@@ -918,7 +926,7 @@
     },
     {
       "id": "HP4",
-      "name": "Humanoid Bay 4",
+      "name": "人形机器人停靠位 4",
       "x": 35.5,
       "y": 11.5,
       "z": 0.0,
@@ -930,19 +938,21 @@
     },
     {
       "id": "PAD1",
-      "name": "Drone Pad 1",
+      "name": "无人机停机坪 1",
       "x": 14.5,
       "y": 21.0,
       "z": 0.0,
       "yaw": 0.0,
       "type": "landing_pad",
       "layer": "air",
-      "aliases": [],
+      "aliases": [
+        "Drone Pad 1"
+      ],
       "metadata": {}
     },
     {
       "id": "PAD2",
-      "name": "Drone Pad 2",
+      "name": "无人机停机坪 2",
       "x": 17.0,
       "y": 21.0,
       "z": 0.0,
@@ -954,7 +964,7 @@
     },
     {
       "id": "PAD3",
-      "name": "Drone Pad 3",
+      "name": "无人机停机坪 3",
       "x": 19.5,
       "y": 21.0,
       "z": 0.0,
@@ -966,7 +976,7 @@
     },
     {
       "id": "PAD4",
-      "name": "Drone Pad 4",
+      "name": "无人机停机坪 4",
       "x": 22.0,
       "y": 21.0,
       "z": 0.0,
@@ -978,7 +988,7 @@
     },
     {
       "id": "AH",
-      "name": "Drone Hub (air)",
+      "name": "无人机空中枢纽",
       "x": 18.25,
       "y": 17.5,
       "z": 8.0,
@@ -990,7 +1000,7 @@
     },
     {
       "id": "AR",
-      "name": "Receiving Overwatch (air)",
+      "name": "收货区空中巡检点",
       "x": 5.0,
       "y": 21.5,
       "z": 8.0,
@@ -1002,19 +1012,21 @@
     },
     {
       "id": "AS",
-      "name": "Storage Overwatch (air)",
+      "name": "存储区空中巡检点",
       "x": 32.0,
       "y": 21.5,
       "z": 8.0,
       "yaw": 0.0,
       "type": "inspection",
       "layer": "air",
-      "aliases": [],
+      "aliases": [
+        "Storage Overwatch (air)"
+      ],
       "metadata": {}
     },
     {
       "id": "AE",
-      "name": "East Air Gate",
+      "name": "东侧空中关口",
       "x": 38.5,
       "y": 13.0,
       "z": 8.0,
@@ -1026,7 +1038,7 @@
     },
     {
       "id": "AL",
-      "name": "Loading Overwatch (air)",
+      "name": "装货区空中巡检点",
       "x": 34.0,
       "y": 2.5,
       "z": 8.0,
@@ -1038,7 +1050,7 @@
     },
     {
       "id": "AW",
-      "name": "West Air Gate",
+      "name": "西侧空中关口",
       "x": 1.0,
       "y": 13.0,
       "z": 8.0,
@@ -1050,7 +1062,7 @@
     },
     {
       "id": "AC",
-      "name": "Charging Overwatch (air)",
+      "name": "充电区空中巡检点",
       "x": 6.0,
       "y": 2.5,
       "z": 8.0,
@@ -1071,7 +1083,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "North aisle 1"
+      "name": "北侧通道 1"
     },
     {
       "id": "LS1",
@@ -1082,7 +1094,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "South aisle 1"
+      "name": "南侧通道 1"
     },
     {
       "id": "LN2",
@@ -1093,7 +1105,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "North aisle 2"
+      "name": "北侧通道 2"
     },
     {
       "id": "LS2",
@@ -1104,7 +1116,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "South aisle 2"
+      "name": "南侧通道 2"
     },
     {
       "id": "LN3",
@@ -1115,7 +1127,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "North aisle 3"
+      "name": "北侧通道 3"
     },
     {
       "id": "LS3",
@@ -1126,7 +1138,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "South aisle 3"
+      "name": "南侧通道 3"
     },
     {
       "id": "LN4",
@@ -1137,7 +1149,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "North aisle 4"
+      "name": "北侧通道 4"
     },
     {
       "id": "LS4",
@@ -1148,7 +1160,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "South aisle 4"
+      "name": "南侧通道 4"
     },
     {
       "id": "LN5",
@@ -1159,7 +1171,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "North aisle 5"
+      "name": "北侧通道 5"
     },
     {
       "id": "LS5",
@@ -1170,7 +1182,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "South aisle 5"
+      "name": "南侧通道 5"
     },
     {
       "id": "LN6",
@@ -1181,7 +1193,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "North aisle 6"
+      "name": "北侧通道 6"
     },
     {
       "id": "LS6",
@@ -1192,7 +1204,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "South aisle 6"
+      "name": "南侧通道 6"
     },
     {
       "id": "LN7",
@@ -1203,7 +1215,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "North aisle 7"
+      "name": "北侧通道 7"
     },
     {
       "id": "LS7",
@@ -1214,7 +1226,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "South aisle 7"
+      "name": "南侧通道 7"
     },
     {
       "id": "LN8",
@@ -1225,7 +1237,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "North aisle 8"
+      "name": "北侧通道 8"
     },
     {
       "id": "LS8",
@@ -1236,7 +1248,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "South aisle 8"
+      "name": "南侧通道 8"
     },
     {
       "id": "LN9",
@@ -1247,7 +1259,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "North aisle 9"
+      "name": "北侧通道 9"
     },
     {
       "id": "LS9",
@@ -1258,7 +1270,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "South aisle 9"
+      "name": "南侧通道 9"
     },
     {
       "id": "LN10",
@@ -1269,7 +1281,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "North aisle 10"
+      "name": "北侧通道 10"
     },
     {
       "id": "LS10",
@@ -1280,7 +1292,7 @@
       "width": 2.4,
       "layer": "ground",
       "altitude": null,
-      "name": "South aisle 10"
+      "name": "南侧通道 10"
     },
     {
       "id": "LW1",
@@ -1357,7 +1369,7 @@
       "width": 1.1,
       "layer": "ground",
       "altitude": null,
-      "name": "Narrow corridor"
+      "name": "狭窄走廊"
     },
     {
       "id": "LK2",
@@ -1368,7 +1380,7 @@
       "width": 1.1,
       "layer": "ground",
       "altitude": null,
-      "name": "Narrow corridor"
+      "name": "狭窄走廊"
     },
     {
       "id": "LK3",
@@ -1379,7 +1391,7 @@
       "width": 1.1,
       "layer": "ground",
       "altitude": null,
-      "name": "Narrow corridor"
+      "name": "狭窄走廊"
     },
     {
       "id": "LR1",
@@ -1390,7 +1402,7 @@
       "width": 1.6,
       "layer": "ground",
       "altitude": null,
-      "name": "Maintenance shortcut"
+      "name": "维护捷径"
     },
     {
       "id": "LR2",
@@ -1401,7 +1413,7 @@
       "width": 1.6,
       "layer": "ground",
       "altitude": null,
-      "name": "Maintenance shortcut"
+      "name": "维护捷径"
     },
     {
       "id": "LE1",
@@ -1709,7 +1721,7 @@
       "width": null,
       "layer": "air",
       "altitude": 8.0,
-      "name": "Eastbound 8 m"
+      "name": "东向通道 8 米"
     },
     {
       "id": "LA_W1",
@@ -1720,7 +1732,7 @@
       "width": null,
       "layer": "air",
       "altitude": 12.0,
-      "name": "Westbound 12 m"
+      "name": "西向通道 12 米"
     },
     {
       "id": "LA_W2",
@@ -1731,7 +1743,7 @@
       "width": null,
       "layer": "air",
       "altitude": 10.0,
-      "name": "Receiving corridor"
+      "name": "收货通道"
     },
     {
       "id": "LA_E2",
@@ -1786,13 +1798,13 @@
       "width": null,
       "layer": "air",
       "altitude": 14.0,
-      "name": "South transit 14 m"
+      "name": "南侧空中通道 14 米"
     }
   ],
   "zones": [
     {
       "id": "zone_receiving",
-      "name": "Receiving",
+      "name": "收货区",
       "type": "receiving",
       "polygon": [
         [
@@ -1815,7 +1827,7 @@
     },
     {
       "id": "zone_storage",
-      "name": "Storage",
+      "name": "存储区",
       "type": "storage",
       "polygon": [
         [
@@ -1838,7 +1850,7 @@
     },
     {
       "id": "zone_charging",
-      "name": "Charging Station",
+      "name": "充电区",
       "type": "charging",
       "polygon": [
         [
@@ -1861,7 +1873,7 @@
     },
     {
       "id": "zone_loading",
-      "name": "Loading Area",
+      "name": "装货区",
       "type": "loading",
       "polygon": [
         [
@@ -1884,7 +1896,7 @@
     },
     {
       "id": "zone_hv",
-      "name": "High-Voltage Maintenance Area",
+      "name": "高压维护区",
       "type": "restricted",
       "polygon": [
         [
@@ -1908,7 +1920,7 @@
     },
     {
       "id": "zone_hv_nofly",
-      "name": "HV No-Fly",
+      "name": "高压禁飞区",
       "type": "no_fly",
       "layer": "air",
       "polygon": [
@@ -1932,7 +1944,7 @@
     },
     {
       "id": "zone_drone_bay",
-      "name": "Drone Bay",
+      "name": "无人机停机区",
       "type": "custom",
       "polygon": [
         [
@@ -1955,7 +1967,7 @@
     },
     {
       "id": "zone_corridor_slow",
-      "name": "Narrow Corridor",
+      "name": "狭窄走廊",
       "type": "slow",
       "speed_limit": 0.5,
       "layer": "ground",

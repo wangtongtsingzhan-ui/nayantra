@@ -215,7 +215,7 @@ export function SystemTab() {
   if (err && !info) return <Empty>{err}</Empty>;
   if (!info) return <Empty>{translateUI("Loading…")}</Empty>;
   const rows: [string, boolean | null, string][] = [
-    ["Nayantra Core", info.core.ok, formatUI("v{version} · up {duration} · {db}", { version: info.core.version, duration: dur(info.core.uptime_s), db: info.core.db })],
+    ["QZ LingShu Core", info.core.ok, formatUI("v{version} · up {duration} · {db}", { version: info.core.version, duration: dur(info.core.uptime_s), db: info.core.db })],
     ["Simulation", info.simulation.running, formatUI("{engine} · {count} robots · {speed}×", { engine: info.simulation.engine, count: info.simulation.robots.length, speed: info.simulation.speed })],
     ["ROS 2 runtime", info.ros2.ok, info.ros2.detail],
     ["MCP server", info.mcp.ok, info.mcp.ok ? `${info.mcp.url} · ${info.mcp.latency_ms} ms` : formatUI("{url} unreachable", { url: info.mcp.url })],
