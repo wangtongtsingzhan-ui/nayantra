@@ -1,11 +1,11 @@
 import { translateUI } from "../lib/language";
 import { useMemo, useState } from "react";
-import { MapPin, Plus, Power, Trash2 } from "lucide-react";
+import { MapPin, Pencil, Plus, Power, Trash2 } from "lucide-react";
 import { api } from "../api/client";
-import type { TaskStatus } from "../api/types";
+import type { Robot, TaskStatus } from "../api/types";
 import { useWorld } from "../store/world";
 import { ROBOT_TYPE_LABEL, TASK_META, clock, errMsg, isOpen } from "../lib/format";
-import { Bar, Battery, Empty, ModeBadge, RobotTypeIcon, TaskBadge, vars } from "../components/ui";
+import { Bar, Battery, Empty, Field, Modal, ModeBadge, RobotTypeIcon, TaskBadge, vars } from "../components/ui";
 
 export function RobotsPage() {
   const robots = useWorld((s) => s.robots);
@@ -14,6 +14,7 @@ export function RobotsPage() {
   const openWizard = useWorld((s) => s.openWizard);
   const toast = useWorld((s) => s.toast);
   const [q, setQ] = useState("");
+  const [editing, setEditing] = useState<Robot | null>(null);
   const list = Object.values(robots)
     .filter((r) => !q || `${r.name} ${r.id} ${r.fleet_id} ${r.model}`.toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => a.fleet_id.localeCompare(b.fleet_id) || a.name.localeCompare(b.name));
@@ -62,6 +63,7 @@ export function RobotsPage() {
                   <td className="muted ellipsis" style={{ maxWidth: 240 }}>{r.effective.capabilities.join(", ")}</td>
                   <td style={{ textAlign: "right", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                     <button className="btn ghost sm icon" title={translateUI("Show on map")} onClick={() => show(r.id, r.effective.map_id)}><MapPin size={13} /></button>
+                    <button className="btn ghost sm icon" title={translateUI("Edit robot")} aria-label={translateUI("Edit robot")} onClick={() => setEditing(r)}><Pencil size={13} /></button>
                     <button
                       className="btn ghost sm icon"
                       title={r.enabled ? translateUI("Decommission (take out of service)") : "Recommission"}
@@ -80,7 +82,73 @@ export function RobotsPage() {
         </table>
         {list.length === 0 && <Empty>{translateUI("No robots registered yet.")}</Empty>}
       </div>
+      {editing && <EditRobot robot={editing} onClose={() => setEditing(null)} />}
     </div>
+  );
+}
+
+type RobotForm = {
+  name: string;
+  manufacturer: string;
+  model: string;
+  fleet_id: string;
+  map_id: string;
+  capabilities: string;
+  payload_kg: string;
+  battery_wh: string;
+};
+
+function EditRobot({ robot, onClose }: { robot: Robot; onClose: () => void }) {
+  const fleets = useWorld((s) => s.fleets);
+  const maps = useWorld((s) => s.maps);
+  const toast = useWorld((s) => s.toast);
+  const [form, setForm] = useState<RobotForm>(() => ({
+    name: robot.name,
+    manufacturer: robot.manufacturer,
+    model: robot.model,
+    fleet_id: robot.fleet_id,
+    map_id: robot.navigation.map_id ?? "",
+    capabilities: robot.capabilities?.join(", ") ?? "",
+    payload_kg: robot.physical.payload_kg == null ? "" : String(robot.physical.payload_kg),
+    battery_wh: robot.physical.battery_wh == null ? "" : String(robot.physical.battery_wh),
+  }));
+  const [err, setErr] = useState("");
+  const fleet = fleets[form.fleet_id];
+  const mapChoices = fleet?.map_ids ?? [];
+  const setFleet = (fleetId: string) => {
+    const nextFleet = fleets[fleetId];
+    const mapId = nextFleet?.map_ids.includes(form.map_id) ? form.map_id : nextFleet?.map_ids[0] ?? "";
+    setForm({ ...form, fleet_id: fleetId, map_id: mapId });
+  };
+  const optionalNumber = (value: string) => value.trim() === "" ? null : Number(value);
+  const save = async () => {
+    if (!form.name.trim()) return setErr(translateUI("Enter a robot name."));
+    try {
+      await api.patch(`/robots/${robot.id}`, {
+        name: form.name.trim(), manufacturer: form.manufacturer.trim(), model: form.model.trim(), fleet_id: form.fleet_id,
+        capabilities: form.capabilities.trim() ? form.capabilities.split(",").map((capability) => capability.trim()).filter(Boolean) : null,
+        navigation: { ...robot.navigation, map_id: form.map_id || null },
+        physical: { ...robot.physical, payload_kg: optionalNumber(form.payload_kg), battery_wh: optionalNumber(form.battery_wh) },
+      });
+      toast("success", translateUI("Robot updated"));
+      onClose();
+    } catch (e) { setErr(errMsg(e)); }
+  };
+  return (
+    <Modal size="sm" title={translateUI("Edit robot")} onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{err}</span><button className="btn" onClick={onClose}>{translateUI("Cancel")}</button><button className="btn primary" onClick={save}>{translateUI("Save changes")}</button></>}>
+      <div className="col" style={{ gap: 10 }}>
+        <Field label={translateUI("Robot name")}><input className="input" autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
+        <div className="grid2">
+          <Field label={translateUI("Manufacturer")}><input className="input" value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} /></Field>
+          <Field label={translateUI("Model")}><input className="input" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} /></Field>
+          <Field label={translateUI("Fleet")}><select className="input" value={form.fleet_id} onChange={(e) => setFleet(e.target.value)}>{Object.values(fleets).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+          <Field label={translateUI("Map")}><select className="input" value={form.map_id} onChange={(e) => setForm({ ...form, map_id: e.target.value })}><option value="">{translateUI("any")}</option>{mapChoices.map((id) => <option key={id} value={id}>{maps[id]?.name ?? id}</option>)}</select></Field>
+          <Field label={translateUI("Payload (kg)")}><input className="input" type="number" min="0" step="0.1" value={form.payload_kg} onChange={(e) => setForm({ ...form, payload_kg: e.target.value })} /></Field>
+          <Field label={translateUI("Battery capacity (Wh)")}><input className="input" type="number" min="0" step="1" value={form.battery_wh} onChange={(e) => setForm({ ...form, battery_wh: e.target.value })} /></Field>
+        </div>
+        <Field label={translateUI("Capabilities")} hint={translateUI("Leave blank to inherit fleet capabilities.")}><input className="input" value={form.capabilities} onChange={(e) => setForm({ ...form, capabilities: e.target.value })} /></Field>
+      </div>
+    </Modal>
   );
 }
 

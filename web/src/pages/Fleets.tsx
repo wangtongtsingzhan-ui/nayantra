@@ -1,7 +1,8 @@
 import { formatUI, translateUI } from "../lib/language";
 import { useEffect, useMemo, useState } from "react";
-import { CircleSlash, OctagonX, Plus, Send } from "lucide-react";
+import { CircleSlash, OctagonX, Pencil, Plus, Send, Trash2 } from "lucide-react";
 import { api } from "../api/client";
+import type { Fleet } from "../api/types";
 import { useWorld } from "../store/world";
 import { MODE_META, ROBOT_TYPE_LABEL, errMsg, titleCase } from "../lib/format";
 import { Battery, Empty, Field, Modal, ModeBadge, RobotTypeIcon, vars } from "../components/ui";
@@ -30,6 +31,8 @@ export function FleetsPage() {
   const toast = useWorld((s) => s.toast);
   const [checked, setChecked] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const fid = selectedFleet && fleets[selectedFleet] ? selectedFleet : Object.keys(fleets)[0];
   const fleet = fid ? fleets[fid] : undefined;
   const ids = useMemo(() => Object.values(robots).filter((r) => r.fleet_id === fid).map((r) => r.id).sort(), [robots, fid]);
@@ -68,6 +71,8 @@ export function FleetsPage() {
                 <div className="muted">{fleet.description || translateUI(ROBOT_TYPE_LABEL[fleet.robot_type]) + translateUI(" fleet")}</div>
               </div>
               <div className="row">
+                <button className="btn icon" onClick={() => setEditing(true)} title={translateUI("Edit fleet")} aria-label={translateUI("Edit fleet")}><Pencil size={14} /></button>
+                <button className="btn danger icon" onClick={() => setDeleting(true)} title={translateUI("Delete fleet")} aria-label={translateUI("Delete fleet")}><Trash2 size={14} /></button>
                 <button className="btn" onClick={() => danger(`/fleets/${fleet.id}/stop`)}><CircleSlash size={13} /> {translateUI("Stop fleet")}</button>
                 <button className="estop small" onClick={() => danger(`/fleets/${fleet.id}/estop`)}><OctagonX size={13} /> {translateUI("E-stop fleet")}</button>
               </div>
@@ -142,6 +147,54 @@ export function FleetsPage() {
         )}
       </div>
       {creating && <CreateFleet onClose={() => setCreating(false)} />}
+      {editing && fleet && <EditFleet fleet={fleet} onClose={() => setEditing(false)} />}
+      {deleting && fleet && <DeleteFleet fleet={fleet} robotCount={ids.length} onClose={() => setDeleting(false)} onDeleted={() => { setDeleting(false); selectFleet(null); }} />}
+    </div>
+  );
+}
+
+type FleetForm = {
+  name: string;
+  description: string;
+  robot_type: string;
+  color: string;
+  map_ids: string[];
+  max_speed: number;
+  capabilities: string;
+  priority: number;
+};
+
+function newFleetForm(mapIds: string[]): FleetForm {
+  return { name: "", description: "", robot_type: "ugv", color: "#22d3ee", map_ids: mapIds.slice(0, 1), max_speed: 1, capabilities: "navigate, carry_payload, charge", priority: 5 };
+}
+
+function FleetFields({ form, setForm, maps, lockRobotType }: {
+  form: FleetForm;
+  setForm: (form: FleetForm) => void;
+  maps: ReturnType<typeof useWorld.getState>["maps"];
+  lockRobotType?: boolean;
+}) {
+  const toggleMap = (id: string) => setForm({ ...form, map_ids: form.map_ids.includes(id) ? form.map_ids.filter((item) => item !== id) : [...form.map_ids, id] });
+  return (
+    <div className="col" style={{ gap: 10 }}>
+      <Field label={translateUI("Name")}><input className="input" autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
+      <Field label={translateUI("Description")}><textarea className="input" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field>
+      <div className="grid2">
+        <Field label={translateUI("Robot type")}>
+          <select className="input" value={form.robot_type} disabled={lockRobotType} onChange={(e) => setForm({ ...form, robot_type: e.target.value })}>
+            {Object.entries(ROBOT_TYPE_LABEL).map(([key, label]) => <option key={key} value={key}>{translateUI(label)}</option>)}
+          </select>
+        </Field>
+        <Field label={translateUI("Colour")}><input className="input" type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} style={{ padding: 2 }} /></Field>
+        <Field label={translateUI("Speed limit (m/s)")}><input className="input" type="number" min="0.1" step="0.1" value={form.max_speed} onChange={(e) => setForm({ ...form, max_speed: Number(e.target.value) })} /></Field>
+        <Field label={translateUI("Traffic priority")}><input className="input" type="number" min="0" max="9" step="1" value={form.priority} onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })} /></Field>
+      </div>
+      <Field label={translateUI("Maps")}>
+        <div className="row" style={{ flexWrap: "wrap", gap: 10 }}>
+          {Object.values(maps).map((map) => <label key={map.id} className="row" style={{ gap: 5 }}><input type="checkbox" className="cbx" checked={form.map_ids.includes(map.id)} onChange={() => toggleMap(map.id)} /> {map.name}</label>)}
+        </div>
+      </Field>
+      <Field label={translateUI("Capabilities")} hint={translateUI("comma-separated")}><input className="input" value={form.capabilities} onChange={(e) => setForm({ ...form, capabilities: e.target.value })} /></Field>
     </div>
   );
 }
@@ -149,46 +202,52 @@ export function FleetsPage() {
 function CreateFleet({ onClose }: { onClose: () => void }) {
   const maps = useWorld((s) => s.maps);
   const toast = useWorld((s) => s.toast);
-  const [f, setF] = useState({ name: "", robot_type: "ugv", color: "#22d3ee", map_id: Object.keys(maps)[0] ?? "", max_speed: 1, capabilities: "navigate, carry_payload, charge", priority: 5 });
+  const [form, setForm] = useState<FleetForm>(() => newFleetForm(Object.keys(maps)));
   const [err, setErr] = useState("");
   const save = async () => {
+    if (!form.name.trim()) return setErr(translateUI("Enter a fleet name."));
     try {
       await api.post("/fleets", {
-        name: f.name,
-        robot_type: f.robot_type,
-        color: f.color,
-        map_ids: f.map_id ? [f.map_id] : [],
-        layer: f.robot_type === "uav" ? "air" : "ground",
-        capabilities: f.capabilities.split(",").map((c) => c.trim()).filter(Boolean),
-        limits: { max_speed: f.max_speed },
-        priority: f.priority,
+        name: form.name.trim(), description: form.description.trim(), robot_type: form.robot_type, color: form.color,
+        map_ids: form.map_ids, layer: form.robot_type === "uav" ? "air" : "ground",
+        capabilities: form.capabilities.split(",").map((capability) => capability.trim()).filter(Boolean), limits: { max_speed: form.max_speed }, priority: form.priority,
       });
-      toast("success", `Fleet ${f.name} created`);
+      toast("success", translateUI("Fleet created"));
       onClose();
-    } catch (e) {
-      setErr(errMsg(e));
-    }
+    } catch (e) { setErr(errMsg(e)); }
   };
-  return (
-    <Modal size="sm" title={translateUI("New fleet")} onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{err}</span><button className="btn primary" onClick={save}>{translateUI("Create fleet")}</button></>}>
-      <div className="col" style={{ gap: 10 }}>
-        <Field label={translateUI("Name")}><input className="input" autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
-        <div className="grid2">
-          <Field label={translateUI("Robot type")}>
-            <select className="input" value={f.robot_type} onChange={(e) => setF({ ...f, robot_type: e.target.value })}>
-              {Object.entries(ROBOT_TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{translateUI(v)}</option>)}
-            </select>
-          </Field>
-          <Field label={translateUI("Map")}>
-            <select className="input" value={f.map_id} onChange={(e) => setF({ ...f, map_id: e.target.value })}>
-              {Object.values(maps).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
-          </Field>
-          <Field label={translateUI("Speed limit (m/s)")}><input className="input" type="number" step="0.1" value={f.max_speed} onChange={(e) => setF({ ...f, max_speed: Number(e.target.value) })} /></Field>
-          <Field label={translateUI("Colour")}><input className="input" type="color" value={f.color} onChange={(e) => setF({ ...f, color: e.target.value })} style={{ padding: 2 }} /></Field>
-        </div>
-        <Field label={translateUI("Capabilities")} hint={translateUI("comma-separated")}><input className="input" value={f.capabilities} onChange={(e) => setF({ ...f, capabilities: e.target.value })} /></Field>
-      </div>
-    </Modal>
-  );
+  return <Modal size="sm" title={translateUI("New fleet")} onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{err}</span><button className="btn" onClick={onClose}>{translateUI("Cancel")}</button><button className="btn primary" onClick={save}>{translateUI("Create fleet")}</button></>}><FleetFields form={form} setForm={setForm} maps={maps} /></Modal>;
+}
+
+function EditFleet({ fleet, onClose }: { fleet: Fleet; onClose: () => void }) {
+  const maps = useWorld((s) => s.maps);
+  const toast = useWorld((s) => s.toast);
+  const [form, setForm] = useState<FleetForm>(() => ({ name: fleet.name, description: fleet.description, robot_type: fleet.robot_type, color: fleet.color, map_ids: fleet.map_ids, max_speed: fleet.limits.max_speed, capabilities: fleet.capabilities.join(", "), priority: fleet.priority }));
+  const [err, setErr] = useState("");
+  const save = async () => {
+    if (!form.name.trim()) return setErr(translateUI("Enter a fleet name."));
+    try {
+      await api.patch(`/fleets/${fleet.id}`, {
+        name: form.name.trim(), description: form.description.trim(), color: form.color, map_ids: form.map_ids,
+        capabilities: form.capabilities.split(",").map((capability) => capability.trim()).filter(Boolean), limits: { ...fleet.limits, max_speed: form.max_speed }, priority: form.priority,
+      });
+      toast("success", translateUI("Fleet updated"));
+      onClose();
+    } catch (e) { setErr(errMsg(e)); }
+  };
+  return <Modal size="sm" title={translateUI("Edit fleet")} onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{err}</span><button className="btn" onClick={onClose}>{translateUI("Cancel")}</button><button className="btn primary" onClick={save}>{translateUI("Save changes")}</button></>}><FleetFields form={form} setForm={setForm} maps={maps} lockRobotType /></Modal>;
+}
+
+function DeleteFleet({ fleet, robotCount, onClose, onDeleted }: { fleet: Fleet; robotCount: number; onClose: () => void; onDeleted: () => void }) {
+  const toast = useWorld((s) => s.toast);
+  const [err, setErr] = useState("");
+  const remove = async () => {
+    try {
+      await api.del(`/fleets/${fleet.id}`);
+      toast("success", translateUI("Fleet deleted"));
+      onDeleted();
+    } catch (e) { setErr(errMsg(e)); }
+  };
+  const blocked = robotCount > 0;
+  return <Modal size="sm" title={translateUI("Delete fleet?")} onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{err}</span><button className="btn" onClick={onClose}>{translateUI("Cancel")}</button><button className="btn danger" disabled={blocked} onClick={remove}><Trash2 size={13} /> {translateUI("Delete")}</button></>}><div className="col" style={{ gap: 10 }}><div>{fleet.name}</div><div className={blocked ? "reason" : "muted"}>{blocked ? translateUI("This fleet still has robots. Move or remove them before deleting it.") : translateUI("This action cannot be undone.")}</div></div></Modal>;
 }
