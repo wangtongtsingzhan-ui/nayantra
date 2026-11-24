@@ -195,3 +195,20 @@ test("brand identity uses the company mark and bilingual product name", () => {
   assert.equal(crypto.createHash("sha256").update(fs.readFileSync("public/qingzhan-mark.png")).digest("hex"), "3c685150c1501b0cb0f9a3645156464464a643aa64f57cb6fd2de27a82401fca");
   assert.equal(t("Nayantra core restarted while this task was open; re-submit it"), "任务未完成时，清湛灵枢核心服务已重启，请重新提交任务");
 });
+
+test("3D legend and grid spacing switch languages without changing values", () => {
+  let value = null;
+  const storage = { getItem: () => value, setItem: (_, v) => { value = v; } };
+  const language = load("src/lib/language.ts", {
+    react: { useSyncExternalStore: (_sub, get) => get() },
+    "./operationalTranslation": operational,
+    "./translations": load("src/lib/translations.ts"),
+  }, { localStorage: storage, document: { documentElement: { lang: "" } }, window: { addEventListener() {}, removeEventListener() {}, dispatchEvent() {} }, Event: function() {} });
+  assert.equal(language.translateUI("3D legend"), "三维图例");
+  assert.equal(language.translateUI("Route colors match robot label borders"), "路线颜色与机器人名称边框一致");
+  assert.equal(language.formatUI("Grid spacing: {distance} m", { distance: 2 }), "网格间距：2 米");
+  language.useLanguage()[1](false);
+  assert.equal(language.translateUI("3D legend"), "3D legend");
+  assert.equal(language.translateUI("Route colors match robot label borders"), "Route colors match robot label borders");
+  assert.equal(language.formatUI("Grid spacing: {distance} m", { distance: 2 }), "Grid spacing: 2 m");
+});

@@ -1,4 +1,4 @@
-import { translateUI } from "../lib/language";
+import { formatUI, translateUI } from "../lib/language";
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Layers, Maximize, Minus, Plus, TriangleAlert } from "lucide-react";
 import type { Point2 } from "../api/types";
@@ -11,7 +11,7 @@ const LAYER_LABEL: Record<LayerKey, string> = {
   trails: "Trajectories", reservations: "Traffic reservations", conflicts: "Conflicts & waits",
 };
 
-export function MapChrome({ control, cursor, pxPerM }: { control: React.MutableRefObject<MapControl | null>; cursor: Point2 | null; pxPerM: number }) {
+export function MapChrome({ control, cursor, pxPerM, view, setView }: { control: React.MutableRefObject<MapControl | null>; cursor: Point2 | null; pxPerM: number; view: "2d" | "3d"; setView: (view: "2d" | "3d") => void }) {
   const maps = useWorld((s) => s.maps);
   const activeMapId = useWorld((s) => s.activeMapId);
   const setActiveMap = useWorld((s) => s.setActiveMap);
@@ -19,6 +19,7 @@ export function MapChrome({ control, cursor, pxPerM }: { control: React.MutableR
   const toggleLayer = useWorld((s) => s.toggleLayer);
   const goTo = useWorld((s) => s.goTo);
   const [open, setOpen] = useState(false);
+  const [legend, setLegend] = useState(false);
   const pop = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -41,6 +42,8 @@ export function MapChrome({ control, cursor, pxPerM }: { control: React.MutableR
   // scale bar: pick a round length ≈ 90 px
   const target = 90 / Math.max(pxPerM, 1e-6);
   const nice = [0.5, 1, 2, 5, 10, 20, 50].find((v) => v >= target) ?? 50;
+  const bounds = activeMapId ? maps[activeMapId]?.bounds : undefined;
+  const gridStep = bounds ? Math.max(2, Math.ceil(Math.max(bounds.max_x - bounds.min_x, bounds.max_y - bounds.min_y) / 100)) : 2;
   return (
     <>
       <div className="map-overlay map-tl" ref={pop}>
@@ -51,6 +54,10 @@ export function MapChrome({ control, cursor, pxPerM }: { control: React.MutableR
             ))}
           </select>
           <button className="btn ghost sm icon" onClick={() => setOpen(!open)} title={translateUI("Layers")} aria-label={translateUI("Layers")}><Layers size={14} /></button>
+        </div>
+        <div className="map-chip glass scene-view-controls">
+          <button className={`btn ghost sm ${view === "2d" ? "active" : ""}`} aria-pressed={view === "2d"} onClick={() => setView("2d")}>2D</button>
+          <button className={`btn ghost sm ${view === "3d" ? "active" : ""}`} aria-pressed={view === "3d"} onClick={() => { setView("3d"); useWorld.getState().setGoTo(false); }}>3D</button>
         </div>
         {open && (
           <div className="layers-pop glass">
@@ -76,13 +83,28 @@ export function MapChrome({ control, cursor, pxPerM }: { control: React.MutableR
         </div>
       </div>
       <div className="map-overlay map-bl">
+        {view === "3d" && <div className="scene-legend glass">
+          <button className="btn ghost sm" aria-expanded={legend} onClick={() => setLegend(!legend)}>{translateUI("3D legend")}</button>
+          {legend && <div className="scene-legend-content">
+            {[["#34d399", "Moving / acting"], ["#e5c75a", "Idle"], ["#60a5fa", "Charging"], ["#fbbf24", "Waiting / paused"], ["#f87171", "Error / emergency stop"], ["#8493a3", "Offline"]].map(([color, label]) => <span key={label}><i style={{ background: color }} />{translateUI(label)}</span>)}
+            <span><i style={{ background: "#71b9d1" }} />{translateUI("Ground lanes")}</span>
+            <span><i style={{ background: "#e8b955" }} />{translateUI("Air corridors")}</span>
+            <span><i style={{ background: "#ef4444" }} />{translateUI("Restricted zone")}</span>
+            <span><i style={{ background: "#fbbf24" }} />{translateUI("No-fly zone")}</span>
+            <span><i style={{ background: "#60a5fa" }} />{translateUI("Slow zone")}</span>
+            <span className="scene-legend-note">{translateUI("Route colors match robot label borders")}</span>
+          </div>}
+        </div>}
+        {(view === "2d" || cursor || layers.grid) &&
         <div className="glass scale">
-          <span className="row" style={{ gap: 6 }}>
+          {view === "2d" && <span className="row" style={{ gap: 6 }}>
             <span style={{ display: "inline-block", width: nice * pxPerM, height: 6, borderLeft: "1.5px solid var(--text-2)", borderRight: "1.5px solid var(--text-2)", borderBottom: "1.5px solid var(--text-2)" }} />
             {nice} m
-          </span>
+          </span>}
+          {view === "3d" && layers.grid && <span>{formatUI("Grid spacing: {distance} m", { distance: gridStep })}</span>}
           <span className="coords">{cursor ? `x ${cursor[0].toFixed(2)}  y ${cursor[1].toFixed(2)}` : " "}</span>
         </div>
+        }
       </div>
     </>
   );

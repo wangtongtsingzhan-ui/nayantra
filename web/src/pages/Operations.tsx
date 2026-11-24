@@ -1,5 +1,5 @@
 import { translateUI } from "../lib/language";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { api, isConfirmation } from "../api/client";
 import type { Point2 } from "../api/types";
 import { BottomDock } from "../components/BottomDock";
@@ -13,6 +13,9 @@ import { useChat } from "../store/chat";
 import { useWorld } from "../store/world";
 import { errMsg } from "../lib/format";
 
+// 三维依赖按需加载，默认二维视图无需下载三维渲染代码。
+const Map3D = lazy(() => import("../map/Map3D"));
+
 export function OperationsPage() {
   const s = useWorld();
   const chatCollapsed = useChat((c) => c.collapsed);
@@ -20,6 +23,10 @@ export function OperationsPage() {
   const control = useRef<MapControl | null>(null);
   const [cursor, setCursor] = useState<Point2 | null>(null);
   const [pxPerM, setPxPerM] = useState(20);
+  const [view, setView] = useState<"2d" | "3d">("2d");
+
+  // “前往”操作仍使用二维路径点，进入该模式时自动切回二维地图。
+  useEffect(() => { if (s.goTo) setView("2d"); }, [s.goTo]);
 
   const send = useCallback(async (robotIds: string[], waypointId: string) => {
     const { robots, toast, maps, activeMapId } = useWorld.getState();
@@ -86,7 +93,11 @@ export function OperationsPage() {
     <div className="ops">
       <FleetSidebar />
       <div className="stage">
-        {map ? (
+        {map && view === "3d" ? (
+          <Suspense fallback={<Empty>{translateUI("Loading 3D view…")}</Empty>}>
+            <Map3D map={map} robots={s.robots} states={s.states} fleets={s.fleets} traffic={s.traffic} trails={s.trails} flashes={s.flashes} selectedWaypoint={s.selectedWaypoint} onWaypoint={onWaypointClick} onCursor={setCursor} selected={s.selectedRobots} layers={s.layers} theme={s.theme} connected={s.connected} control={control} onSelect={(id, additive) => s.selectRobot(id, additive)} />
+          </Suspense>
+        ) : map ? (
           <MapView
             map={map}
             mode="ops"
@@ -116,7 +127,8 @@ export function OperationsPage() {
         ) : (
           <Empty>{s.loaded ? translateUI("No maps yet — create one in the Map editor.") : translateUI("Connecting to QZ LingShu Core…")}</Empty>
         )}
-        {map && <MapChrome control={control} cursor={cursor} pxPerM={pxPerM} />}
+        {map && <MapChrome control={control} cursor={cursor} pxPerM={pxPerM} view={view} setView={setView} />}
+        {view === "3d" && !s.connected && <div className="scene-disconnected glass" role="status">{translateUI("Live data disconnected · showing last known state")}</div>}
         <ConflictFlashes />
       </div>
       <aside className={`inspector with-chat${chatCollapsed ? " chat-collapsed" : ""}`}>
