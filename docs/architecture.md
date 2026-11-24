@@ -119,8 +119,10 @@ command bar uses the streaming form through the core's
 
 ### 3. MCP Server (`nayantra/mcp/`)
 
-It is a REST transport built around MCP tool semantics: `GET /tools`,
-`POST /run` and `GET /sse`. It is not the MCP JSON-RPC wire protocol.
+The existing server offers REST endpoints `GET /tools`, `POST /run` and
+`GET /sse`. `nayantra.mcp.stdio` separately implements standard MCP over
+stdio for Codex and other local MCP clients, using the same tool registry and
+Core client. The stdio process does not use the REST server's JWT guard.
 
 **Tool registry pattern**
 

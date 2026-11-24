@@ -32,7 +32,7 @@ WSL 重启后通常需要重新启动。启动脚本的 Agent API 监听 0.0.0.0
 
 ## 架构与边界
 
-Nayantra Core 自行负责任务分配与交通协调；按当前项目说明，Open-RMF 是可选基础设施，默认链路不使用 `rmf_traffic`。项目所称 MCP 工具服务当前基于 REST 工具语义，不是标准 MCP JSON-RPC；对外兼容性需另行验证。具体机器人、叉车业务动作、厂商协议和 ROS 版本是否兼容，须通过适配器及实际设备验证，不能假设开箱支持。
+Nayantra Core 自行负责任务分配与交通协调；按当前项目说明，Open-RMF 是可选基础设施，默认链路不使用 `rmf_traffic`。原有 7000 端口工具服务使用 REST；标准 MCP stdio 入口为 `python -m nayantra.mcp.stdio`，可由 Codex 启动并直接访问 Core，不使用 REST 服务的 JWT 认证。具体机器人、叉车业务动作、厂商协议和 ROS 版本是否兼容，须通过适配器及实际设备验证，不能假设开箱支持。
 
 ## 中文界面
 

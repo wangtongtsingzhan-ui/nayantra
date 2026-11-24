@@ -35,6 +35,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "rich>=13.9",
     "prometheus-client>=0.21",
+    "mcp>=1.9,<2",
 ]
 
 [project.optional-dependencies]
@@ -58,6 +59,7 @@ nayantra              = "nayantra.agent.main:main"
 nayantra-api          = "nayantra.agent.api_v2:main"
 nayantra-core         = "nayantra.core.server:main"
 nayantra-mcp-server   = "nayantra.mcp.server:main"
+nayantra-mcp-stdio    = "nayantra.mcp.stdio:main"
 nayantra-zenoh-bridge = "nayantra.zenoh_bridge.bridge:main"
 nayantra-token        = "scripts.generate_token:main"
 

@@ -32,8 +32,8 @@ makes every allocation, routing, traffic and safety decision:
 > and does not need Open-RMF anywhere in the path. A real Open-RMF server
 > remains available as optional infrastructure (`OPENRMF_INFRA_TOOLS=true`).
 >
-> The MCP server is a REST transport built around MCP tool semantics
-> (`/tools`, `/run`, `/sse`). It is not the MCP JSON-RPC wire protocol.
+> The existing tool server uses REST (`/tools`, `/run`, `/sse`). A separate
+> standard MCP stdio server is available for Codex and other MCP clients.
 
 ---
 
@@ -189,6 +189,23 @@ bash scripts/start.sh        # Windows: scripts\start.ps1
 | Agent API | http://localhost:8080/docs |
 
 Or use Docker: `docker compose -f docker/docker-compose.yml up --build`.
+
+To connect Codex, install the project dependencies, start Nayantra Core, then
+register the stdio server (replace the path if your checkout is elsewhere):
+
+```bash
+codex mcp add nayantra -- /home/wangt/nayantra/.venv/bin/python -m nayantra.mcp.stdio
+```
+
+Codex launches the server on demand. It loads the project's `.env` and calls
+`NAYANTRA_CORE_URL` directly; the REST tool server on port 7000 is not needed
+for this connection. The stdio process has access to the same actions as the
+local MCP tool layer, including actions requiring operator confirmation in the
+dashboard. The REST server's JWT authentication does not apply to stdio: access
+is controlled by who can launch the local process and reach Core.
+
+For generic MCP clients, WorkBuddy, and Windows desktop with a WSL checkout,
+see [MCP 接入说明](docs/mcp-integration.md) for configuration and troubleshooting.
 
 ### 4. Try it
 

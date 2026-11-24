@@ -249,6 +249,10 @@ Or use the operator UI at **http://localhost:8000/**.
 
 ## 6. Verifying everything
 
+For standard MCP access from Codex and other clients, including Windows desktop with WSL, see
+[MCP 接入说明](mcp-integration.md). The port 7000 checks below apply to the
+existing REST tool service, not the stdio MCP connection.
+
 | Check                | Command                                       | Expected                        |
 |----------------------|-----------------------------------------------|---------------------------------|
 | Nayantra Core        | `curl http://localhost:8000/api/v1/health`    | `{"status":"ok","version":"0.1.0",...}` |
