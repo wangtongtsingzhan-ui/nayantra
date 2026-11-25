@@ -224,18 +224,42 @@ function EditFleet({ fleet, onClose }: { fleet: Fleet; onClose: () => void }) {
   const toast = useWorld((s) => s.toast);
   const [form, setForm] = useState<FleetForm>(() => ({ name: fleet.name, description: fleet.description, robot_type: fleet.robot_type, color: fleet.color, map_ids: fleet.map_ids, max_speed: fleet.limits.max_speed, capabilities: fleet.capabilities.join(", "), priority: fleet.priority }));
   const [err, setErr] = useState("");
+  const [battery, setBattery] = useState(() => ({
+    min: String(fleet.battery.min_pct), recharge: String(fleet.battery.recharge_pct),
+    charged: String(fleet.battery.charged_pct), auto: fleet.charging_required,
+  }));
+  const [saving, setSaving] = useState(false);
   const save = async () => {
     if (!form.name.trim()) return setErr(translateUI("Enter a fleet name."));
+    const values = [battery.min, battery.recharge, battery.charged].map((s) => s.trim() === "" ? NaN : Number(s));
+    if (values.some((v) => !Number.isFinite(v) || v < 0 || v > 100)) return setErr(translateUI("Battery thresholds must be numbers between 0 and 100."));
+    if (values[0] > values[1] || values[1] >= values[2]) return setErr(translateUI("Minimum battery must not exceed the recharge threshold; the recharge threshold must be below the target."));
+    setErr("");
+    setSaving(true);
     try {
       await api.patch(`/fleets/${fleet.id}`, {
         name: form.name.trim(), description: form.description.trim(), color: form.color, map_ids: form.map_ids,
         capabilities: form.capabilities.split(",").map((capability) => capability.trim()).filter(Boolean), limits: { ...fleet.limits, max_speed: form.max_speed }, priority: form.priority,
+        battery: { ...fleet.battery, min_pct: values[0], recharge_pct: values[1], charged_pct: values[2] },
+        charging_required: battery.auto,
       });
       toast("success", translateUI("Fleet updated"));
       onClose();
-    } catch (e) { setErr(errMsg(e)); }
+    } catch (e) { setErr(errMsg(e)); } finally { setSaving(false); }
   };
-  return <Modal size="sm" title={translateUI("Edit fleet")} onClose={onClose} footer={<><span style={{ color: "var(--err)" }}>{err}</span><button className="btn" onClick={onClose}>{translateUI("Cancel")}</button><button className="btn primary" onClick={save}>{translateUI("Save changes")}</button></>}><FleetFields form={form} setForm={setForm} maps={maps} lockRobotType /></Modal>;
+  return <Modal size="sm" title={translateUI("Edit fleet")} onClose={onClose} footer={<><span style={{ color: "var(--err)" }} role="alert">{err}</span><button className="btn" onClick={onClose}>{translateUI("Cancel")}</button><button className="btn primary" disabled={saving} onClick={save}>{translateUI("Save changes")}</button></>}>
+    <FleetFields form={form} setForm={setForm} maps={maps} lockRobotType />
+    <div className="col" style={{ gap: 10, marginTop: 16 }}>
+      <div className="section-title">{translateUI("Battery policy")}</div>
+      <label className="row"><input type="checkbox" className="cbx" checked={battery.auto} onChange={(e) => setBattery({ ...battery, auto: e.target.checked })} /> {translateUI("Auto-charge when battery runs low")}</label>
+      <div className="grid2">
+        <Field label={translateUI("Minimum battery (%)")}><input className="input" type="number" min="0" max="100" step="0.1" value={battery.min} onChange={(e) => setBattery({ ...battery, min: e.target.value })} /></Field>
+        <Field label={translateUI("Recharge below (%)")}><input className="input" type="number" min="0" max="100" step="0.1" value={battery.recharge} onChange={(e) => setBattery({ ...battery, recharge: e.target.value })} /></Field>
+        <Field label={translateUI("Charging target (%)")}><input className="input" type="number" min="0" max="100" step="0.1" value={battery.charged} onChange={(e) => setBattery({ ...battery, charged: e.target.value })} /></Field>
+      </div>
+      <div className="faint">{translateUI("The policy applies to this fleet. Auto-charge needs an idle robot and a compatible simulated charger.")}</div>
+    </div>
+  </Modal>;
 }
 
 function DeleteFleet({ fleet, robotCount, onClose, onDeleted }: { fleet: Fleet; robotCount: number; onClose: () => void; onDeleted: () => void }) {

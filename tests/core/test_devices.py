@@ -319,3 +319,16 @@ def test_cancel_charging_stops_and_does_not_auto_restart(client):
     time.sleep(2.2)
     assert not rt.adapter.snapshot().charging
     assert c.get('/api/v1/devices/cancel_charger').json()['holder'] is None
+
+
+def test_fleet_battery_policy_updates_simulated_robot(client):
+    c = client
+    fleet = c.get('/api/v1/fleets/warehouse_ugv').json()
+    battery = {**fleet['battery'], 'min_pct': 15, 'recharge_pct': 45, 'charged_pct': 90}
+    result = c.patch('/api/v1/fleets/warehouse_ugv', json={'battery': battery, 'charging_required': False})
+    assert result.status_code == 200, result.text
+    assert result.json()['battery'] == battery
+    assert result.json()['charging_required'] is False
+    wait_for(lambda: c.core.fleet.runtimes['ugv_01'].adapter.config.battery.recharge_pct == 45, 5)
+    assert c.core.fleet.runtimes['ugv_01'].adapter.config.battery.charged_pct == 90
+    assert c.core.store.get('fleets', 'warehouse_ugv')['battery'] == battery
