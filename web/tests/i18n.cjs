@@ -15,6 +15,18 @@ function load(filename, requires = {}, globals = {}) {
 }
 const operational = load("src/lib/operationalTranslation.ts");
 const { translateOperationalText: t } = operational;
+test("simulated door events retain the device name", () => {
+  assert.equal(t("DEVICE"), "设备");
+  assert.equal(t("Simulated charger 桩A: charging started"), "模拟充电设备 桩A：充电已开始");
+  assert.equal(t("T-0332 → waiting for traffic: Waiting for simulated door 456"), "任务 T-0332 → 等待交通通行：正在等待模拟门 456");
+  assert.equal(t("Simulated door 456 requires recovery after task T-0331"), "模拟门 456 因任务 T-0331 中断需要恢复");
+  assert.equal(t("Simulated door Door-002: status checked: closed before open"), "模拟门 Door-002：开门前检查状态：已关闭");
+  assert.equal(t("Simulated door Door-002: already open"), "模拟门 Door-002：已打开，无需开门");
+  assert.equal(t("Simulated door Door-002: open requested"), "模拟门 Door-002：开门请求");
+  assert.equal(t("Simulated door Door-002: opened"), "模拟门 Door-002：开门成功");
+  assert.equal(t("Simulated door Door-002: close requested"), "模拟门 Door-002：关门请求");
+  assert.equal(t("Simulated door Door-002: closed"), "模拟门 Door-002：关门成功");
+});
 test("event categories and statuses have Chinese labels", () => {
   assert.equal(t("ROBOT_TASK_COMPLETED"), "机器人任务已完成");
   assert.equal(t("TRAFFIC_DEADLOCK"), "交通死锁");

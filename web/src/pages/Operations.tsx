@@ -74,6 +74,7 @@ export function OperationsPage() {
         else {
           st.selectRobot(null);
           st.selectWaypoint(null);
+          st.selectDevice(null);
         }
       }
       if ((e.key === "g" || e.key === "G") && st.selectedRobots.length) st.setGoTo(!st.goTo);
@@ -110,17 +111,20 @@ export function OperationsPage() {
             flashes={s.flashes}
             selectedRobots={s.selectedRobots}
             selectedWaypoint={s.selectedWaypoint}
+            selectedDevice={s.selectedDevice}
             crosshair={s.goTo}
             control={control}
             onCursor={setCursor}
             onScale={setPxPerM}
             onRobotClick={(id, e) => s.selectRobot(id, e.shiftKey || e.ctrlKey || e.metaKey)}
+            onDeviceClick={(id) => s.selectDevice(id)}
             onWaypointClick={onWaypointClick}
             onWaypointDoubleClick={onWaypointDoubleClick}
             onBackground={() => {
               if (!s.goTo) {
                 s.selectRobot(null);
                 s.selectWaypoint(null);
+                s.selectDevice(null);
               }
             }}
           />

@@ -88,6 +88,11 @@ class RobotRuntime:
     stall_ref: tuple[float, float, float] | None = None
     sent_base: int = 0
     sent_last_index: dict[int, int] = field(default_factory=dict)
+    route_device: str | None = None
+    route_device_step: int | None = None
+    charger_device: str | None = None
+    charger_arrived: bool = False
+    charge_cancelled: bool = False
 
 
 class FleetManager:
@@ -108,6 +113,7 @@ class FleetManager:
         self.sim = sim
         self.safety = safety
         self.tasks = tasks
+        self.devices = None
         self.runtimes: dict[str, RobotRuntime] = {}
         self._loops: list[asyncio.Task] = []
         self._started = False
@@ -470,6 +476,20 @@ class FleetManager:
                         self.traffic.freeze(rt.robot_id, busy=False)
                         self.tasks.transition(task, S.FAILED, f"Internal executor error: {exc}")
                 finally:
+                    if task.type == TaskType.DEVICE and self.devices:
+                        self.devices.finish(task.params["device_id"], task.id, interrupted=True)
+                    if rt.route_device and self.devices:
+                        self.devices.finish(rt.route_device, task.id, interrupted=True)
+                        rt.route_device = rt.route_device_step = None
+                    if rt.charger_device and self.devices:
+                        d = self.devices.get(rt.charger_device)
+                        if task.status == S.COMPLETED and rt.charger_arrived:
+                            self.devices.phase(d['id'], task.id, 'occupied')
+                        else:
+                            node, lane = self.traffic.location(rt.robot_id)
+                            self.devices.finish(d['id'], task.id, interrupted=rt.charger_arrived or node == d['entry'] or lane is not None)
+                        rt.charger_device = None
+                        rt.charger_arrived = False
                     rt.current_task = None
                     rt.state.current_task_id = None
                     rt.control = None
@@ -486,28 +506,128 @@ class FleetManager:
                         logger.exception(f"state refresh failed for {rt.robot_id}")
 
     async def _execute(self, rt: RobotRuntime, task: Task) -> None:
+        if task.type == TaskType.DEVICE and rt.adapter.kind != "simulation":
+            self.tasks.transition(task, S.FAILED, "Device workflows require a simulated robot")
+            return
         self.tasks.transition(task, S.PLANNING, "Planning route")
+        if task.type == TaskType.CHARGE:
+            if task.created_by != 'system':
+                rt.charge_cancelled = False
+            if rt.adapter.kind != 'simulation':
+                self.tasks.transition(task, S.FAILED, 'Simulated chargers require a simulated robot')
+                return
+            outcome = await self._reserve_charger(rt, task)
+            if outcome != 'done':
+                return
         if task.allow_restricted:
             self.traffic.profiles[rt.robot_id] = self._profile(rt.robot_id, allow_restricted=True)
         for i in range(task.current_step, len(task.steps)):
             step = task.steps[i]
+            if task.type == TaskType.DEVICE:
+                device = self.devices.get(task.params["device_id"])
+                if device['holder'] and device['holder']['task_id'] == task.id and device['fault']:
+                    self.tasks.transition(task, S.FAILED, "Simulated device fault")
+                    return
             step.status = "active"
             step.started_at = time.time()
             self.tasks.set_progress(task, i, 0.0)
-            outcome = await (
-                self._go_to(rt, task, i) if step.kind == "go_to" else self._act(rt, task, i)
-            )
+            if step.kind == "go_to":
+                outcome = await self._go_to(rt, task, i)
+            elif step.action and step.action.startswith("device:"):
+                outcome = await self._device_action(rt, task, step.action[7:])
+            else:
+                outcome = await self._act(rt, task, i)
             if outcome != "done":
                 step.status = "failed" if outcome == "failed" else "pending"
                 return
+            if task.type == TaskType.CHARGE and step.kind == 'go_to':
+                rt.charger_arrived = True
+                self.devices.phase(rt.charger_device, task.id, 'docked')
             step.status = "done"
             step.finished_at = time.time()
             self.tasks.set_progress(task, i + 1, 0.0)
         self.tasks.transition(task, S.COMPLETED, f"Completed by {self._name(rt.robot_id)}")
 
+    async def _reserve_charger(self, rt: RobotRuntime, task: Task) -> str:
+        step = task.steps[0]
+        graph = self.graphs.get(task.map_id)
+        targets = [step.target] if step.target else list(step.candidates)
+        devices = [self.devices.charger_at(task.map_id, target) for target in targets]
+        devices = [d for d in devices if d is not None]
+        if not devices:
+            self.tasks.transition(task, S.FAILED, 'No simulated charger device bound to the requested station')
+            return 'failed'
+        while True:
+            if await self._checkpoint(rt, task) == 'cancelled':
+                return 'cancelled'
+            origin = self.planning_origin(rt.robot_id)
+            ranked = []
+            for d in devices:
+                wp = graph.nodes.get(d['entry'])
+                if not wp or wp.layer != rt.adapter.config.layer:
+                    continue
+                route = graph.plan_static(origin, d['entry'], self.profile_for(rt.robot_id)) if origin else None
+                if origin == d['entry']:
+                    ranked.append((0, d['id'], d))
+                elif route:
+                    ranked.append((route.time, d['id'], d))
+            if not ranked:
+                self.tasks.transition(task, S.FAILED, 'No reachable compatible simulated charger')
+                return 'failed'
+            for _, _, d in sorted(ranked):
+                if self.devices.acquire(d['id'], task.id, rt.robot_id):
+                    rt.charger_device = d['id']
+                    step.target = d['entry']
+                    self.bus.emit(EventType.DEVICE, f"Simulated charger {d['name']}: reserved", robot_id=rt.robot_id, task_id=task.id, map_id=task.map_id, data={'device_id': d['id'], 'action': 'reserved', 'simulated': True})
+                    return 'done'
+            self._set_waiting(rt, task, 'Waiting for an available simulated charger')
+            await asyncio.sleep(CONTROL_PERIOD_S)
+
+    async def _device_action(self, rt: RobotRuntime, task: Task, action: str) -> str:
+        d = self.devices.get(task.params["device_id"])
+        if await self._checkpoint(rt, task) == "cancelled":
+            return "cancelled"
+        self.tasks.transition(task, S.EXECUTING, f"Simulated device: {action}")
+        if action == "acquire":
+            while not self.devices.acquire(d["id"], task.id, rt.robot_id):
+                if await self._checkpoint(rt, task) == "cancelled":
+                    return "cancelled"
+                rt.reason = f"Waiting for simulated device {d['id']}"
+                await asyncio.sleep(CONTROL_PERIOD_S)
+            if d['type'] == 'bin':
+                op = task.params['operation']
+                if (op == 'pickup') != d['occupied']:
+                    self.tasks.transition(task, S.FAILED, f"Bin state does not permit {op}")
+                    self.devices.finish(d['id'], task.id)
+                    return "failed"
+            return "done"
+        if action == "finish":
+            if d['fault']:
+                self.tasks.transition(task, S.FAILED, "Simulated device fault")
+                return "failed"
+            if d['type'] == 'bin':
+                d['occupied'] = task.params['operation'] == 'dropoff'
+            self.devices.finish(d['id'], task.id)
+            return "done"
+        self.devices.phase(d['id'], task.id, action)
+        deadline = time.monotonic() + d['duration_s']
+        while time.monotonic() < deadline:
+            ctl = await self._checkpoint(rt, task)
+            if ctl == "cancelled":
+                return "cancelled"
+            if ctl == "resumed":
+                deadline = time.monotonic() + d['duration_s']
+            if d['fault']:
+                self.tasks.transition(task, S.FAILED, "Simulated device fault")
+                return "failed"
+            await asyncio.sleep(CONTROL_PERIOD_S)
+        return "done"
+
     # -- control handling ----------------------------------------------
     async def control_task(self, task: Task, action: str, reason: str) -> None:
         rt = self.runtimes.get(task.assigned_robot or "")
+        if rt is not None and action == 'cancel' and task.type == TaskType.CHARGE:
+            rt.charge_cancelled = True
         if rt is None or rt.current_task != task.id:
             if action == "cancel":
                 self.tasks.transition(task, S.CANCELLED, reason)
@@ -652,6 +772,9 @@ class FleetManager:
             return "failed"
         graph = self.graphs.get(cfg.map_id)
         while True:
+            if rt.charger_device and self.devices.get(rt.charger_device)['fault']:
+                self.tasks.transition(task, S.FAILED, 'Simulated charger fault')
+                return 'failed'
             ctl = await self._checkpoint(rt, task)
             if ctl == "cancelled":
                 return "cancelled"
@@ -818,6 +941,109 @@ class FleetManager:
         if poses:
             await rt.adapter.follow_path(poses, limits)
 
+    def _door_event(self, rt: RobotRuntime, task: Task, device: dict, action: str) -> None:
+        self.bus.emit(EventType.DEVICE, f"Simulated door {device['name']}: {action}",
+                      robot_id=rt.robot_id, task_id=task.id, map_id=device['map_id'],
+                      data={"device_id": device['id'], "action": action, "simulated": True})
+
+    def _check_door_status(self, rt: RobotRuntime, task: Task, device: dict, target: str) -> str:
+        status = device.get('door_status', 'unknown')
+        self._door_event(rt, task, device, f"status checked: {status} before {target}")
+        if device['fault'] or status not in ('open', 'closed'):
+            self.tasks.transition(task, S.FAILED, f"Simulated door {device['name']} state {status} unavailable; recovery required")
+            return 'failed'
+        return status
+
+    async def _close_route_door(self, rt: RobotRuntime, task: Task, device: dict) -> str:
+        status = self._check_door_status(rt, task, device, 'close')
+        if status == 'failed':
+            return 'failed'
+        if status == 'closed':
+            self._door_event(rt, task, device, 'already closed')
+            self.devices.finish(device['id'], task.id)
+            rt.route_device = rt.route_device_step = None
+            return 'done'
+        self.devices.phase(device['id'], task.id, 'closing')
+        self.devices.door_status(device['id'], task.id, 'closing')
+        self._door_event(rt, task, device, 'close requested')
+        deadline = time.monotonic() + device['duration_s']
+        while time.monotonic() < deadline:
+            ctl = await self._checkpoint(rt, task)
+            if ctl == 'cancelled':
+                return 'cancelled'
+            if ctl == 'resumed':
+                deadline = time.monotonic() + device['duration_s']
+            if device['fault']:
+                self.tasks.transition(task, S.FAILED, f"Simulated door {device['name']} fault while closing")
+                return 'failed'
+            await asyncio.sleep(CONTROL_PERIOD_S)
+        if device['fault']:
+            self.tasks.transition(task, S.FAILED, f"Simulated door {device['name']} fault while closing")
+            return 'failed'
+        self.devices.phase(device['id'], task.id, 'closed')
+        self.devices.door_status(device['id'], task.id, 'closed')
+        self._door_event(rt, task, device, 'closed')
+        self.devices.finish(device['id'], task.id)
+        rt.route_device = rt.route_device_step = None
+        return 'done'
+
+    async def _open_route_door(self, rt: RobotRuntime, task: Task, plan: RobotPlan, device: dict) -> str:
+        """Open a simulated door only while the robot is stopped at its lane entrance."""
+        version = plan.version
+        if rt.adapter.kind != "simulation":
+            self.tasks.transition(task, S.FAILED, "A simulated door cannot control a real robot")
+            return "failed"
+        while not self.devices.acquire(device['id'], task.id, rt.robot_id):
+            if device['state'] == 'recovery_required':
+                holder = device.get('holder') or {}
+                reason = f"Simulated door {device['name']} requires recovery after task {holder.get('task_id', 'unknown')}"
+            elif device['fault']:
+                reason = f"Simulated door {device['name']} is faulted"
+            else:
+                reason = f"Waiting for simulated door {device['name']}"
+            self._set_waiting(rt, task, reason)
+            if await self._checkpoint(rt, task) == "cancelled":
+                return "cancelled"
+            if self.traffic.plans.get(rt.robot_id) is not plan or plan.version != version:
+                return "replan"
+            await asyncio.sleep(CONTROL_PERIOD_S)
+        rt.route_device = device['id']
+        rt.route_device_step = plan.started + 1
+        status = self._check_door_status(rt, task, device, 'open')
+        if status == 'failed':
+            # The robot is still at the entrance and no command was sent.
+            self.devices.finish(device['id'], task.id)
+            rt.route_device = rt.route_device_step = None
+            return 'failed'
+        if status == 'open':
+            self.devices.phase(device['id'], task.id, 'open')
+            self._door_event(rt, task, device, 'already open')
+            return 'ok'
+        self.devices.phase(device['id'], task.id, 'open_entry')
+        self.devices.door_status(device['id'], task.id, 'opening')
+        self._door_event(rt, task, device, 'open requested')
+        self.tasks.transition(task, S.EXECUTING, f"Opening simulated door {device['name']}")
+        self.tasks.note(task, f"Opening simulated door {device['name']} before lane {plan.step(plan.started + 1).lane_id}")
+        deadline = time.monotonic() + device['duration_s']
+        while time.monotonic() < deadline:
+            ctl = await self._checkpoint(rt, task)
+            if ctl == "cancelled":
+                return "cancelled"
+            if ctl == "resumed" or self.traffic.plans.get(rt.robot_id) is not plan or plan.version != version:
+                self.tasks.transition(task, S.FAILED, "Door opening interrupted; recovery required")
+                return "failed"
+            if device['fault']:
+                self.tasks.transition(task, S.FAILED, f"Simulated door {device['name']} fault")
+                return "failed"
+            await asyncio.sleep(CONTROL_PERIOD_S)
+        if device['fault']:
+            self.tasks.transition(task, S.FAILED, f"Simulated door {device['name']} fault")
+            return "failed"
+        self.devices.phase(device['id'], task.id, 'open')
+        self.devices.door_status(device['id'], task.id, 'open')
+        self._door_event(rt, task, device, 'opened')
+        return "ok"
+
     async def _follow(
         self, rt: RobotRuntime, task: Task, i: int, plan: RobotPlan, graph: MapGraph
     ) -> str:
@@ -835,11 +1061,32 @@ class FleetManager:
             if ctl == "cancelled":
                 return "cancelled"
             if ctl == "resumed":
+                if rt.route_device:
+                    self.tasks.transition(task, S.FAILED, "Door transit interrupted; recover simulated device")
+                    return "failed"
                 return "replan"
             plan = self.traffic.plans.get(rid)
             if plan is None:
+                if rt.route_device:
+                    self.tasks.transition(task, S.FAILED, "Door route interrupted; recovery required")
+                    return "failed"
                 return "replan"
+            if rt.route_device and self.devices.get(rt.route_device)['fault']:
+                await rt.adapter.stop()
+                self.traffic.freeze(rid, busy=True)
+                self.tasks.transition(task, S.FAILED, "Simulated door fault during transit")
+                return "failed"
+            if rt.charger_device and self.devices.get(rt.charger_device)['fault']:
+                await rt.adapter.stop()
+                self.traffic.freeze(rid, busy=True)
+                self.tasks.transition(task, S.FAILED, 'Simulated charger fault')
+                return 'failed'
             if plan.version != version:
+                if rt.route_device:
+                    await rt.adapter.stop()
+                    self.traffic.freeze(rid, busy=True)
+                    self.tasks.transition(task, S.FAILED, "Door route changed during transit; recovery required")
+                    return "failed"
                 version = plan.version
                 self.bus.emit(
                     EventType.ROUTE_CHANGED,
@@ -860,6 +1107,10 @@ class FleetManager:
                         self.traffic.complete_step(rid, k)
                     else:
                         break
+            if rt.route_device and rt.route_device_step is not None and plan.progress >= rt.route_device_step:
+                outcome = await self._close_route_door(rt, task, self.devices.get(rt.route_device))
+                if outcome != 'done':
+                    return outcome
             if snap.nav_state == "failed":
                 if nav_retries < 1 and "battery" not in snap.nav_detail:
                     nav_retries += 1
@@ -883,6 +1134,17 @@ class FleetManager:
             extended = False
             waiting_reason = ""
             while plan.started < len(plan.steps) and plan.started - plan.progress < LOOKAHEAD_STEPS:
+                # Never send a path through a device ahead of its entrance, or beyond it
+                # before the simulated transit has completed.
+                if rt.route_device:
+                    break
+                next_step = plan.step(plan.started + 1)
+                device = self.devices.on_lane(graph.map_id, next_step.lane_id) if self.devices else None
+                own_explicit_session = bool(device and task.type == TaskType.DEVICE and
+                    device['id'] == task.params.get('device_id') and device['holder'] and
+                    device['holder']['task_id'] == task.id)
+                if device and not own_explicit_session and plan.moving:
+                    break
                 chk = self.traffic.check_step(rid)
                 if chk.replan:
                     if plan.moving:
@@ -893,8 +1155,27 @@ class FleetManager:
                 if not chk.allowed:
                     waiting_reason = chk.reason
                     break
+                if device and not own_explicit_session:
+                    opening_version = plan.version
+                    outcome = await self._open_route_door(rt, task, plan, device)
+                    if outcome != "ok":
+                        return outcome
+                    # Other robots or a replan may have changed clearance while opening.
+                    if (self.traffic.plans.get(rid) is not plan or plan.version != opening_version
+                            or self.traffic.check_step(rid).replan):
+                        outcome = await self._close_route_door(rt, task, device)
+                        return "replan" if outcome == "done" else outcome
+                    chk = self.traffic.check_step(rid)
+                    if not chk.allowed:
+                        outcome = await self._close_route_door(rt, task, device)
+                        if outcome != 'done':
+                            return outcome
+                        waiting_reason = chk.reason
+                        break
                 self.traffic.start_step(rid, plan.started + 1)
                 extended = True
+                if rt.route_device:
+                    break
             if extended:
                 await self._send_path(rt, plan, graph)
                 rt.activity = None
@@ -935,6 +1216,9 @@ class FleetManager:
         adapter = rt.adapter
         self.tasks.transition(task, S.EXECUTING, step.label)
         native = action in adapter.native_actions
+        if task.type == TaskType.CHARGE and (not native or not rt.charger_device):
+            self.tasks.transition(task, S.FAILED, f"Simulated charger requires native {action} action")
+            return 'failed'
         while True:
             ctl = await self._checkpoint(rt, task)
             if ctl == "cancelled":
@@ -942,13 +1226,24 @@ class FleetManager:
             rt.activity = "charging" if action == "charge" else "acting"
             rt.reason = step.label
             if native:
+                if task.type == TaskType.CHARGE and rt.charger_device:
+                    self.devices.phase(rt.charger_device, task.id, {'dock': 'docking', 'charge': 'charging', 'undock': 'undocking'}.get(action, action))
                 start_batt = adapter.snapshot().battery_pct or 0.0
                 try:
                     await adapter.start_action(action, task.params)
                 except NotImplementedError as exc:
+                    if task.type == TaskType.CHARGE:
+                        self.tasks.transition(task, S.FAILED, str(exc))
+                        return 'failed'
                     native = False
                     self.tasks.note(task, str(exc))
                     continue
+                if task.type == TaskType.CHARGE and rt.charger_device and action == 'charge':
+                    device = self.devices.get(rt.charger_device)
+                    if not adapter.snapshot().charging:
+                        self.tasks.transition(task, S.FAILED, 'Simulated charging did not start')
+                        return 'failed'
+                    self.bus.emit(EventType.DEVICE, f"Simulated charger {device['name']}: charging started", robot_id=rt.robot_id, task_id=task.id, map_id=task.map_id, data={'device_id': device['id'], 'action': 'charging started', 'simulated': True})
                 target = rt.adapter.config.battery.charged_pct
                 while True:
                     ctl = await self._checkpoint(rt, task)
@@ -956,9 +1251,16 @@ class FleetManager:
                         return "cancelled"
                     if ctl == "resumed":
                         break
+                    if task.type == TaskType.CHARGE and rt.charger_device and self.devices.get(rt.charger_device)['fault']:
+                        await adapter.cancel_action()
+                        self.tasks.transition(task, S.FAILED, 'Simulated charger fault')
+                        return 'failed'
                     snap = adapter.snapshot()
                     if snap.action_done:
                         await adapter.cancel_action()
+                        if task.type == TaskType.CHARGE and rt.charger_device and action == 'charge':
+                            device = self.devices.get(rt.charger_device)
+                            self.bus.emit(EventType.DEVICE, f"Simulated charger {device['name']}: charging stopped", robot_id=rt.robot_id, task_id=task.id, map_id=task.map_id, data={'device_id': device['id'], 'action': 'charging stopped', 'simulated': True})
                         rt.activity = None
                         return "done"
                     if snap.nav_state == "failed":
@@ -1017,6 +1319,16 @@ class FleetManager:
 
     def _update_state(self, rt: RobotRuntime) -> None:
         snap = rt.adapter.snapshot()
+        if snap.online and self.devices:
+            for d in self.devices.devices.values():
+                holder = d.get('holder')
+                if d['type'] != 'charger' or d.get('phase') != 'occupied' or not holder or holder['robot_id'] != rt.robot_id:
+                    continue
+                wp = self.registry.waypoints.get(d['entry'])
+                radius = rt.adapter.config.footprint.radius or 0.5
+                if wp and math.hypot(snap.pose.x - wp.x, snap.pose.y - wp.y) > radius + 0.5:
+                    self.devices.finish(d['id'], holder['task_id'])
+                    self.bus.emit(EventType.DEVICE, f"Simulated charger {d['name']}: released", robot_id=rt.robot_id, task_id=holder['task_id'], map_id=d['map_id'], data={'device_id': d['id'], 'action': 'released', 'simulated': True})
         st = rt.state
         robot = self.registry.robots.get(rt.robot_id)
         was_online = st.online
@@ -1193,18 +1505,15 @@ class FleetManager:
         node_type = graph.nodes[node].type if graph and node in graph.nodes else None
         pol = cfg.battery
         can_charge = "charge" in cfg.capabilities
-        # Idle on a charger → top up.
+        if rt.charge_cancelled:
+            can_charge = False
+        # Idle on a charger → schedule a device-backed top-up.
         if can_charge and node_type in ("charger", "landing_pad") and snap.battery_pct is not None:
-            if (
-                snap.battery_pct < pol.charged_pct - 0.5
-                and not snap.charging
-                and "charge" in rt.adapter.native_actions
-            ):
-                if not (cfg.layer == "air" and snap.pose.z > 0.3):
-                    await rt.adapter.start_action("charge")
-            elif snap.charging and snap.battery_pct >= pol.charged_pct:
-                await rt.adapter.cancel_action()
-            return
+            charger = self.devices.charger_at(cfg.map_id, node) if self.devices else None
+            available = charger and (not charger['holder'] or (charger['phase'] == 'occupied' and charger['holder']['robot_id'] == rt.robot_id))
+            if available and not charger['fault'] and snap.battery_pct < pol.charged_pct - 0.5 and not (cfg.layer == 'air' and snap.pose.z > 0.3):
+                self._system_task(rt.robot_id, TaskType.CHARGE, {'charger': node}, 7, 'idle at simulated charger')
+                return
         # UAV hovering with nothing to do → land on a free pad.
         if cfg.layer == "air" and snap.pose.z > 0.3 and "land" in cfg.capabilities:
             if not self._open_task_of_type(rt.robot_id, {"land"}):
@@ -1222,6 +1531,7 @@ class FleetManager:
             and snap.battery_pct is not None
             and snap.battery_pct < pol.recharge_pct
             and not self._open_task_of_type(rt.robot_id, {"charge"})
+            and any(d['type'] == 'charger' and d['map_id'] == cfg.map_id for d in self.devices.devices.values())
         ):
             self._system_task(
                 rt.robot_id,

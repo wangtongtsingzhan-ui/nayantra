@@ -35,6 +35,7 @@ from nayantra.config import settings
 from nayantra.core.adapters.ros2_runtime import Ros2Runtime
 from nayantra.core.allocation import allocate
 from nayantra.core.errors import ConfirmationRequired, Conflict, Invalid, NotFound
+from nayantra.core.devices import DeviceCreate
 from nayantra.core.models import (
     KNOWN_CAPABILITIES,
     FleetCreate,
@@ -70,8 +71,68 @@ router = APIRouter(prefix="/api/v1")
 IMAGE_DIR = Path(settings.NAYANTRA_DB_PATH).parent / "maps"
 
 
+class SimDeviceFault(BaseModel):
+    fault: bool
+
+
+class SimDoorStatus(BaseModel):
+    status: Literal['open', 'closed', 'unknown']
+
+
+@router.get("/devices")
+async def list_devices(request: Request):
+    return list(core_of(request).devices.devices.values())
+
+
+@router.post("/devices", status_code=201)
+async def create_device(request: Request, body: DeviceCreate):
+    core = core_of(request)
+    if body.lane_id or body.type == 'charger':
+        _assert_map_idle(core, body.map_id)
+    return core.devices.create(body)
+
+
+@router.get("/devices/{device_id}")
+async def get_device(request: Request, device_id: str):
+    return core_of(request).devices.get(device_id)
+
+
+@router.delete("/devices/{device_id}")
+async def delete_device(request: Request, device_id: str):
+    core = core_of(request)
+    device = core.devices.get(device_id)
+    if device.get('lane_id') or device['type'] == 'charger':
+        _assert_map_idle(core, device['map_id'])
+    if any(t.params.get('device_id') == device_id and t.status not in ('completed', 'failed', 'cancelled') for t in core.tasks.tasks.values()):
+        raise Conflict('Device is referenced by an active task')
+    core.devices.delete(device_id)
+    return {"deleted": device_id}
+
+
+@router.post("/devices/{device_id}/fault")
+async def device_fault(request: Request, device_id: str, body: SimDeviceFault):
+    return core_of(request).devices.fault(device_id, body.fault)
+
+
+@router.post("/devices/{device_id}/simulated-status")
+async def simulated_door_status(request: Request, device_id: str, body: SimDoorStatus):
+    return core_of(request).devices.simulate_door_status(device_id, body.status)
+
+
+@router.post("/devices/{device_id}/recover")
+async def recover_device(request: Request, device_id: str):
+    core = core_of(request)
+    active = {t.id for t in core.tasks.tasks.values() if t.status not in ('completed', 'failed', 'cancelled')}
+    return core.devices.recover(device_id, active)
+
+
 def core_of(request: Request) -> NayantraCore:
     return request.app.state.core
+
+
+def _assert_map_idle(core: NayantraCore, map_id: str) -> None:
+    if any(t.map_id == map_id and t.status not in ('completed', 'failed', 'cancelled') for t in core.tasks.tasks.values()) or any(p.map_id == map_id for p in core.traffic.plans.values()):
+        raise Conflict('Device route configuration requires an idle map')
 
 
 def client_of(request: Request) -> str:
@@ -446,12 +507,17 @@ async def get_waypoint(request: Request, wp_id: str):
 
 @router.patch("/waypoints/{wp_id}")
 async def patch_waypoint(request: Request, wp_id: str, body: WaypointPatch):
-    return core_of(request).registry.update_waypoint(wp_id, body)
+    core = core_of(request)
+    if body.type is not None and body.type not in ('charger', 'landing_pad') and any(d['type'] == 'charger' and d['entry'] == wp_id for d in core.devices.devices.values()):
+        raise Conflict('Waypoint is bound to a charger device')
+    return core.registry.update_waypoint(wp_id, body)
 
 
 @router.delete("/waypoints/{wp_id}")
 async def delete_waypoint(request: Request, wp_id: str):
     core = core_of(request)
+    if any(wp_id in (d['entry'], d.get('inside'), d.get('exit')) for d in core.devices.devices.values()):
+        raise Conflict('Waypoint is referenced by a device')
     core.registry.delete_waypoint(wp_id, in_use_by=core.tasks.open_tasks_using(wp_id))
     return {"deleted": wp_id}
 
@@ -470,12 +536,20 @@ async def create_lane(request: Request, map_id: str, body: LaneCreate):
 
 @router.patch("/lanes/{lane_id}")
 async def patch_lane(request: Request, lane_id: str, body: LanePatch):
-    return core_of(request).registry.update_lane(lane_id, body)
+    core = core_of(request)
+    lane = core.registry.get_lane(lane_id)
+    if core.devices.on_lane(lane.map_id, lane_id) and body.layer not in (None, 'ground'):
+        raise Conflict('A device is bound to this ground lane')
+    return core.registry.update_lane(lane_id, body)
 
 
 @router.delete("/lanes/{lane_id}")
 async def delete_lane(request: Request, lane_id: str):
-    core_of(request).registry.delete_lane(lane_id)
+    core = core_of(request)
+    lane = core.registry.get_lane(lane_id)
+    if core.devices.on_lane(lane.map_id, lane_id):
+        raise Conflict('Lane is referenced by a device')
+    core.registry.delete_lane(lane_id)
     return {"deleted": lane_id}
 
 

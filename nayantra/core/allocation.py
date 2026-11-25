@@ -127,6 +127,13 @@ def _evaluate(task: Task, robot_id: str, registry: WorldRegistry, fleet: FleetMa
     req = task.requirements
     reasons: list[str] = []
 
+    if task.type == TaskType.DEVICE:
+        rt = fleet.runtimes.get(robot_id)
+        if rt is not None and rt.adapter.kind != "simulation":
+            reasons.append("device tasks require a simulated robot")
+        if any(s.action == "charge" for s in task.steps) and "charge" not in cfg.capabilities:
+            reasons.append("lacks capability charge")
+
     missing = [c for c in req.capabilities if c not in cfg.capabilities]
     if missing:
         reasons.append(f"lacks capability {', '.join(missing)}")

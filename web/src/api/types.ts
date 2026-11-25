@@ -135,9 +135,18 @@ export interface PendingAction {
 }
 export interface SimStatus { running: boolean; speed: number; sim_time_s: number; environment: string; engine: string; robots: string[] }
 
+export interface Device {
+  id: string; name: string; type: string; map_id: string; lane_id?: string | null;
+  state: string; fault: boolean; simulated: boolean;
+  door_status?: string; holder?: { task_id: string; robot_id: string } | null;
+  phase?: string | null; updated_at?: number;
+  entry: string;
+}
+
 export interface World {
   version: string; maps: MapDetail[]; fleets: Fleet[]; robots: Robot[]; tasks: Task[]; traffic: TrafficState;
   events: NEvent[]; alerts: Alert[]; confirmations: PendingAction[]; sim: SimStatus;
+  devices?: Device[];
 }
 
 export interface Meta {

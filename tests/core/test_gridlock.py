@@ -18,6 +18,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from nayantra.core.runtime import NayantraCore
+from nayantra.core.devices import DeviceCreate
 from nayantra.core.server import create_app
 
 UI = {"X-Nayantra-Client": "ui"}
@@ -49,6 +50,9 @@ def warehouse(tmp_path):
     path = tmp_path / "gridlock.json"
     path.write_text(json.dumps(scenario), encoding="utf-8")
     core = NayantraCore(db_path=":memory:", scenario=str(path))
+    core.seed()
+    charger = core.registry.get_waypoint('charger')
+    core.devices.create(DeviceCreate(id='sim_charger', name='Simulated charger', type='charger', map_id=charger.map_id, entry=charger.id))
     with TestClient(create_app(core)) as c:
         c.patch("/api/v1/sim", json={"speed": 8.0})
         wait_for(

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { api } from "../api/client";
 import type {
-  Alert, Conflict, Fleet, Lane, MapDetail, NEvent, PendingAction, Point2, Robot, RobotState,
+  Alert, Conflict, Device, Fleet, Lane, MapDetail, NEvent, PendingAction, Point2, Robot, RobotState,
   SimStatus, Task, TrafficState, Waypoint, World, Zone,
 } from "../api/types";
 
@@ -36,6 +36,7 @@ interface WorldStore {
   loaded: boolean;
   version: string;
   maps: Record<string, MapDetail>;
+  devices: Record<string, Device>;
   fleets: Record<string, Fleet>;
   robots: Record<string, Robot>;
   states: Record<string, RobotState>;
@@ -52,6 +53,7 @@ interface WorldStore {
   activeMapId: string | null;
   selectedRobots: string[];
   selectedWaypoint: string | null;
+  selectedDevice: string | null;
   selectedTask: string | null;
   selectedFleet: string | null;
   goTo: boolean;
@@ -69,6 +71,7 @@ interface WorldStore {
   selectRobot: (id: string | null, additive?: boolean) => void;
   setSelectedRobots: (ids: string[]) => void;
   selectWaypoint: (id: string | null) => void;
+  selectDevice: (id: string | null) => void;
   selectTask: (id: string | null) => void;
   selectFleet: (id: string | null) => void;
   setGoTo: (v: boolean) => void;
@@ -104,6 +107,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
   loaded: false,
   version: "",
   maps: {},
+  devices: {},
   fleets: {},
   robots: {},
   states: {},
@@ -120,6 +124,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
   activeMapId: readPref<string | null>("map", null),
   selectedRobots: [],
   selectedWaypoint: null,
+  selectedDevice: null,
   selectedTask: null,
   selectedFleet: null,
   goTo: false,
@@ -149,6 +154,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
       loaded: true,
       version: w.version,
       maps,
+      devices: byId(w.devices ?? []),
       fleets: byId(w.fleets),
       robots: byId(w.robots),
       states,
@@ -168,6 +174,18 @@ export const useWorld = create<WorldStore>((set, get) => ({
       case "snapshot":
         s.applySnapshot(data as World);
         return;
+      case "device": {
+        const device = data as Device;
+        set({ devices: { ...s.devices, [device.id]: device } });
+        return;
+      }
+      case "device_removed": {
+        const { id } = data as { id: string };
+        const devices = { ...s.devices };
+        delete devices[id];
+        set({ devices, selectedDevice: s.selectedDevice === id ? null : s.selectedDevice });
+        return;
+      }
       case "robots": {
         const list = data as RobotState[];
         const states = { ...s.states };
@@ -246,7 +264,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
   },
   setActiveMap: (id) => {
     writePref("map", id);
-    set({ activeMapId: id, selectedWaypoint: null });
+    set({ activeMapId: id, selectedWaypoint: null, selectedDevice: null });
   },
   selectRobot: (id, additive = false) => {
     if (id === null) return set({ selectedRobots: [], goTo: false });
@@ -254,11 +272,12 @@ export const useWorld = create<WorldStore>((set, get) => ({
     if (additive) {
       set({ selectedRobots: cur.includes(id) ? cur.filter((r) => r !== id) : [...cur, id] });
     } else {
-      set({ selectedRobots: [id], selectedWaypoint: null });
+      set({ selectedRobots: [id], selectedWaypoint: null, selectedDevice: null });
     }
   },
-  setSelectedRobots: (ids) => set({ selectedRobots: ids }),
-  selectWaypoint: (id) => set({ selectedWaypoint: id }),
+  setSelectedRobots: (ids) => set({ selectedRobots: ids, ...(ids.length ? { selectedDevice: null, selectedWaypoint: null } : {}) }),
+  selectWaypoint: (id) => set({ selectedWaypoint: id, ...(id ? { selectedDevice: null } : {}) }),
+  selectDevice: (id) => set({ selectedDevice: id, ...(id ? { selectedRobots: [], selectedWaypoint: null, goTo: false } : {}) }),
   selectTask: (id) => set({ selectedTask: id }),
   selectFleet: (id) => set({ selectedFleet: id }),
   setGoTo: (v) => set({ goTo: v }),

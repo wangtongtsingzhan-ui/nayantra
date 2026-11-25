@@ -75,6 +75,7 @@ TASK_CAPABILITIES: dict[TaskType, list[str]] = {
     TaskType.TAKEOFF: ["takeoff"],
     TaskType.LAND: ["land"],
     TaskType.MAKE_WAY: ["navigate"],
+    TaskType.DEVICE: ["navigate"],
 }
 
 # What kind of waypoint to prefer inside a zone for each purpose.
@@ -147,6 +148,7 @@ class TaskManager:
         self.bus = bus
         self.store = store
         self.fleet: FleetManager | None = None
+        self.devices = None
         self.tasks: dict[str, Task] = {}
         seq = 0
         for raw in store.list("tasks"):
@@ -353,6 +355,11 @@ class TaskManager:
         return [w.id for w in self.registry.list_waypoints(map_id) if w.type in types]
 
     def _infer_map(self, req: TaskCreate) -> str:
+        if req.type == TaskType.DEVICE and self.devices:
+            device = self.devices.get(req.params.get("device_id"))
+            if req.map_id and req.map_id != device["map_id"]:
+                raise Invalid("Device and task must be on the same map")
+            return device["map_id"]
         if req.map_id:
             self.registry.get_map(req.map_id)
             return req.map_id
@@ -420,7 +427,41 @@ class TaskManager:
             steps.append(TaskStep(kind="action", label=label, action=action, duration_s=duration))
 
         p = params
-        if ttype == TaskType.NAVIGATE:
+        if ttype == TaskType.DEVICE:
+            if self.devices is None:
+                raise Invalid("Device manager unavailable")
+            d = self.devices.get(p.get("device_id"))
+            if d["map_id"] != map_id:
+                raise Invalid("Device and task must be on the same map")
+            if d["type"] == "lift":
+                raise Invalid("Simulated cross-floor elevator travel is not supported")
+            if d["type"] == "bin" and p.get("operation") not in ("pickup", "dropoff"):
+                raise Invalid("Bin operation must be pickup or dropoff")
+            direction = p.get("direction", "forward")
+            if direction not in ("forward", "reverse"):
+                raise Invalid("Device direction must be forward or reverse")
+            if direction == "reverse" and d["type"] not in ("door", "air_shower"):
+                raise Invalid("Reverse direction is only supported for door and air shower")
+            entry = d["exit"] if direction == "reverse" else d["entry"]
+            exit_point = d["entry"] if direction == "reverse" else d["exit"]
+            go(entry, "goto", "Device entry")
+            act("device:acquire", "Reserve simulated device")
+            if d["type"] in ("door", "air_shower"):
+                act("device:open_entry", "Open entry door")
+                if d["type"] == "air_shower":
+                    go(d["inside"], "goto", "Enter air shower")
+                    if direction == "forward":
+                        act("device:wash", "Close entry and run air shower")
+                    else:
+                        act("device:close_entry", "Close entry door")
+                    act("device:open_exit", "Open exit door")
+                go(exit_point, "goto", "Leave device")
+            elif d["type"] == "charger":
+                act("charge", "Charge at simulated charger")
+            else:
+                act("device:service", "Simulated device handshake")
+            act("device:finish", "Complete simulated device session")
+        elif ttype == TaskType.NAVIGATE:
             dest = p.get("destination") or p.get("waypoint") or p.get("target") or p.get("place")
             go(dest, "goto", "Go to")
         elif ttype == TaskType.MAKE_WAY:
@@ -453,13 +494,16 @@ class TaskManager:
             if ref:
                 go(ref, "charge", "Go to")
             else:
-                cands = self._typed_candidates(map_id, PURPOSE_TYPES["charge"])
+                cands = [d['entry'] for d in self.devices.devices.values()
+                         if d['type'] == 'charger' and d['map_id'] == map_id]
                 if not cands:
-                    raise Invalid(f"Map {map_id!r} has no chargers")
+                    raise Invalid(f"Map {map_id!r} has no simulated charger devices")
                 steps.append(
                     TaskStep(kind="go_to", label="Go to nearest free charger", candidates=cands)
                 )
+            act("dock", "Dock at simulated charger")
             act("charge", "Charge")
+            act("undock", "Undock from simulated charger")
         elif ttype == TaskType.DOCK:
             ref = p.get("dock") or p.get("target")
             if ref:

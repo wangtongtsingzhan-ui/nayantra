@@ -22,6 +22,7 @@ from nayantra.config import settings
 from nayantra.core.adapters import SimEngine
 from nayantra.core.adapters.ros2_runtime import Ros2Runtime
 from nayantra.core.confirmations import Confirmations
+from nayantra.core.devices import DeviceManager
 from nayantra.core.events import EventBus
 from nayantra.core.fleet import FleetManager
 from nayantra.core.models import (
@@ -59,10 +60,13 @@ class NayantraCore:
         self.sim = SimEngine(self.bus)
         self.safety = SafetyGuard(self.registry)
         self.tasks = TaskManager(self.registry, self.bus, self.store)
+        self.devices = DeviceManager(self.store, self.bus, self.registry)
+        self.tasks.devices = self.devices
         self.fleet = FleetManager(
             self.registry, self.bus, self.graphs, self.traffic, self.sim, self.safety, self.tasks
         )
         self.tasks.attach(self.fleet)
+        self.fleet.devices = self.devices
         self.confirmations = Confirmations(self.bus)
         self.scenario = settings.NAYANTRA_SCENARIO if scenario is None else scenario
         self.started_at = time.time()
@@ -119,6 +123,7 @@ class NayantraCore:
         self.store.clear()
         self.tasks.tasks.clear()
         self.registry.__init__(self.store, self.bus)  # reload (empty)
+        self.devices.devices.clear()
         self.graphs.invalidate()
         if scenario is not None:
             self.scenario = scenario
@@ -152,6 +157,9 @@ class NayantraCore:
             return {"removed": p["robot_id"]}
 
         async def delete_map(p: dict) -> Any:
+            if any(d['map_id'] == p['map_id'] for d in self.devices.devices.values()):
+                from nayantra.core.errors import Conflict
+                raise Conflict('Map is referenced by devices')
             self.registry.delete_map(p["map_id"])
             return {"deleted": p["map_id"]}
 
@@ -249,4 +257,5 @@ class NayantraCore:
             "alerts": [a.model_dump(mode="json") for a in self.bus.alerts()],
             "confirmations": [c.model_dump(mode="json") for c in self.confirmations.list()],
             "sim": self.sim.status(),
+            "devices": list(self.devices.devices.values()),
         }

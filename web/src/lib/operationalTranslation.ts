@@ -14,7 +14,7 @@ const eventTypes: Record<string, string> = {
   NAVIGATION_FAILED: "导航失败", LOCALIZATION_LOST: "定位丢失", SAFETY_STOP: "安全停止",
   EMERGENCY_STOP: "紧急停止", EMERGENCY_STOP_RELEASED: "紧急停止已解除",
   CONFIRMATION_REQUESTED: "等待确认", CONFIRMATION_RESOLVED: "确认已处理",
-  SIMULATION: "模拟", SYSTEM: "系统",
+  SIMULATION: "模拟", DEVICE: "设备", SYSTEM: "系统",
 };
 
 const states: Record<string, string> = {
@@ -143,6 +143,39 @@ function translateAllocationSummary(text: string): string | null {
 }
 
 export function translateOperationalText(text: string): string {
+  const charger = /^Simulated charger (.+): (reserved|charging started|charging stopped|released)$/.exec(text);
+  if (charger) {
+    const actions: Record<string, string> = { reserved: "已预约", "charging started": "充电已开始", "charging stopped": "充电已停止", released: "已释放" };
+    return `模拟充电设备 ${charger[1]}：${actions[charger[2]]}`;
+  }
+  if (text === "Waiting for an available simulated charger") return "等待可用的模拟充电设备";
+  if (text === "No simulated charger device bound to the requested station") return "目标充电站点未绑定模拟充电设备";
+  if (text === "No reachable compatible simulated charger") return "没有可到达且兼容的模拟充电设备";
+  if (text === "Simulated charger fault") return "模拟充电设备故障";
+  if (text === "Simulated charging did not start") return "模拟充电未启动";
+  const waitingDoor = /^Waiting for simulated door (.+)$/.exec(text);
+  if (waitingDoor) return `正在等待模拟门 ${waitingDoor[1]}`;
+  const recoverDoor = /^Simulated door (.+) requires recovery after task (.+)$/.exec(text);
+  if (recoverDoor) return `模拟门 ${recoverDoor[1]} 因任务 ${recoverDoor[2]} 中断需要恢复`;
+  const faultDoor = /^Simulated door (.+) is faulted$/.exec(text);
+  if (faultDoor) return `模拟门 ${faultDoor[1]} 发生故障`;
+  const unknownDoor = /^Simulated door (.+) state (open|closed|opening|closing|unknown) unavailable; recovery required$/.exec(text);
+  if (unknownDoor) {
+    const statuses: Record<string, string> = { open: "已打开", closed: "已关闭", opening: "正在打开", closing: "正在关闭", unknown: "未知" };
+    return `模拟门 ${unknownDoor[1]} 状态为${statuses[unknownDoor[2]]}，无法通行，请检查设备`;
+  }
+  const doorCheck = /^Simulated door (.+): status checked: (open|closed|opening|closing|unknown) before (open|close)$/.exec(text);
+  if (doorCheck) {
+    const statuses: Record<string, string> = { open: "已打开", closed: "已关闭", opening: "正在打开", closing: "正在关闭", unknown: "未知" };
+    return `模拟门 ${doorCheck[1]}：${doorCheck[3] === "open" ? "开门" : "关门"}前检查状态：${statuses[doorCheck[2]]}`;
+  }
+  const doorAlready = /^Simulated door (.+): already (open|closed)$/.exec(text);
+  if (doorAlready) return `模拟门 ${doorAlready[1]}：${doorAlready[2] === "open" ? "已打开，无需开门" : "已关闭，无需关门"}`;
+  const door = /^Simulated door (.+): (open requested|opened|close requested|closed)$/.exec(text);
+  if (door) {
+    const actions: Record<string, string> = { "open requested": "开门请求", opened: "开门成功", "close requested": "关门请求", closed: "关门成功" };
+    return `模拟门 ${door[1]}：${actions[door[2]]}`;
+  }
   if (Object.hasOwn(eventTypes, text)) return eventTypes[text];
   if (Object.hasOwn(exact, text)) return exact[text];
   if (Object.hasOwn(states, text)) return states[text];

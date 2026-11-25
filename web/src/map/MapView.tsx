@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Conflict, Fleet, Lane, MapDetail, Point2, Robot, RobotState, TrafficState, Waypoint } from "../api/types";
-import type { LayerKey } from "../store/world";
+import { useWorld, type LayerKey } from "../store/world";
 import { RobotsLayer } from "./RobotsLayer";
 import { SX, SY, WP_COLOR, ZONE_STYLE, centroid, fitBox, type ViewBox } from "./geometry";
 
@@ -39,6 +39,8 @@ interface Props {
   onWaypointClick?: (id: string, e: React.MouseEvent) => void;
   onWaypointDoubleClick?: (id: string) => void;
   onRobotClick?: (id: string, e: React.MouseEvent) => void;
+  onDeviceClick?: (id: string) => void;
+  selectedDevice?: string | null;
   onBackground?: (x: number, y: number) => void;
   onCursor?: (p: Point2 | null) => void;
   onScale?: (pxPerMetre: number) => void;
@@ -103,6 +105,7 @@ function placeLabels(map: MapDetail, waypoints: Waypoint[], unit: number, editin
 
 export function MapView(props: Props) {
   const { map, mode, layers, fitSignal = 0 } = props;
+  const devices = useWorld((s) => s.devices);
   const svgRef = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
   const [measured, setMeasured] = useState(false);
@@ -283,6 +286,27 @@ export function MapView(props: Props) {
         onWaypointClick={props.onWaypointClick}
         onWaypointDoubleClick={props.onWaypointDoubleClick}
       />
+      {layers.lanes && Object.values(devices).filter((d) => d.type === "door" && d.map_id === map.id && d.lane_id).map((d) => {
+        const lane = map.lanes.find((ln) => ln.id === d.lane_id);
+        const a = lane && wpIndex[lane.from_id];
+        const b = lane && wpIndex[lane.to_id];
+        if (!lane || !a || !b) return null;
+        const x = (SX(a.x) + SX(b.x)) / 2;
+        const y = (SY(a.y) + SY(b.y)) / 2;
+        return <g key={d.id} transform={`translate(${x} ${y}) scale(${unit})`}
+          role={mode === "ops" ? "button" : undefined}
+          aria-label={d.name}
+          style={{ cursor: "pointer" }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); if (mode === "edit") props.edit?.onLaneClick(lane.id); else props.onDeviceClick?.(d.id); }}>
+          <title>{d.name}</title>
+          {props.selectedDevice === d.id && <rect x={-17} y={-19} width={34} height={37} rx={4} fill="none" stroke="var(--accent)" strokeWidth={2} />}
+          <rect x={-13} y={-15} width={26} height={29} rx={1.5} fill="var(--map-floor)" stroke="#079cda" strokeWidth={1.7} />
+          <path d="M -12 -14 L 5 -10 Q 7 -9.5 7 -7 L 7 10 L -12 14" fill="none" stroke="#079cda" strokeWidth={1.7} strokeLinejoin="round" />
+          <circle cx={2.5} cy={0} r={1.3} fill="var(--map-floor)" stroke="#666" strokeWidth={1.4} />
+          {layers.labels && <text className="m-label strong" x={0} y={25} textAnchor="middle" style={{ fontSize: 10, strokeWidth: 3 }}>{d.name}</text>}
+        </g>;
+      })}
       {mode === "ops" && (
         <LiveLayers
           map={map}

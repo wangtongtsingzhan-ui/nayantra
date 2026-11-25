@@ -233,7 +233,12 @@ function Properties({ map, sel, onDelete, onSaved }: { map: MapDetail; sel: Edit
     return map.zones.find((z) => z.id === sel.id) ?? null;
   }, [map, sel]);
   const [draft, setDraft] = useState<Record<string, unknown>>({});
+  const deviceMap = useWorld((s) => s.devices);
+  const devices = Object.values(deviceMap);
+  const [deviceId, setDeviceId] = useState("");
+  const [deviceName, setDeviceName] = useState("");
   useEffect(() => setDraft(item ? { ...item } : {}), [item]);
+  useEffect(() => { setDeviceId(""); setDeviceName(""); }, [map.id, sel?.id]);
   if (!sel || !item) {
     return (
       <div>
@@ -304,6 +309,12 @@ function Properties({ map, sel, onDelete, onSaved }: { map: MapDetail; sel: Edit
             <Field label={translateUI("Aliases")} hint={translateUI("Other names operators or the LLM may use, comma-separated")}>
               <input className="input" value={((draft.aliases as string[]) ?? []).join(", ")} onChange={(e) => setDraft({ ...draft, aliases: e.target.value.split(",").map((a) => a.trim()).filter(Boolean) })} />
             </Field>
+            {['charger', 'landing_pad'].includes((item as Waypoint).type) && <Field label={translateUI("Simulated charger device")} hint={translateUI("Charging tasks reserve this device before traveling.")}>
+              {devices.find((d) => d.type === 'charger' && d.entry === sel.id) ? (() => {
+                const charger = devices.find((d) => d.type === 'charger' && d.entry === sel.id)!;
+                return <div className="col"><span>{charger.name} ({charger.id}) · {translateUI(titleCase(charger.state))}</span><button className="btn" onClick={async () => { try { await api.del(`/devices/${charger.id}`); } catch (err) { toast('error', errMsg(err)); } }}>{translateUI("Remove simulated charger")}</button></div>;
+              })() : <div className="col"><input className="input" value={deviceId} placeholder={translateUI("Device ID")} onChange={(e) => setDeviceId(e.target.value)} /><input className="input" value={deviceName} placeholder={translateUI("Device name")} onChange={(e) => setDeviceName(e.target.value)} /><button className="btn" disabled={!deviceId || !deviceName} onClick={async () => { try { await api.post('/devices', { id: deviceId, name: deviceName, type: 'charger', map_id: map.id, entry: sel.id }); } catch (err) { toast('error', errMsg(err)); } }}>{translateUI("Add simulated charger")}</button></div>}
+            </Field>}
           </>
         )}
         {sel.kind === "lane" && (
@@ -321,6 +332,32 @@ function Properties({ map, sel, onDelete, onSaved }: { map: MapDetail; sel: Edit
               </Field>
               {num("altitude", "Altitude (m, air)", 1)}
             </div>
+            <Field label={translateUI("Simulated door on this lane")} hint={translateUI("Navigation and delivery tasks open this door automatically before crossing.")}>
+              {devices.find((d) => d.lane_id === sel.id) ? (() => {
+                const device = devices.find((d) => d.lane_id === sel.id)!;
+                return <div className="col"><span>{device.name} ({device.id}) · {translateUI(titleCase(device.state))}</span>
+                  {device.state === "recovery_required" && <button className="btn" onClick={async () => {
+                    if (!window.confirm(translateUI("Confirm the simulated robot and door are safe before releasing the device?"))) return;
+                    try { await api.post(`/devices/${device.id}/recover`, {}); } catch (err) { toast("error", errMsg(err)); }
+                  }}>{translateUI("Recover simulated device")}</button>}
+                  <Field label={translateUI("Simulated door position") } hint={translateUI("Set the simulated position when the door is idle.")}>
+                    <select className="input" disabled={Boolean(device.holder)} value={device.door_status ?? "unknown"} onChange={async (e) => { try { await api.post(`/devices/${device.id}/simulated-status`, { status: e.target.value }); } catch (err) { toast("error", errMsg(err)); } }}>
+                      <option value="unknown">{translateUI("Unknown")}</option><option value="closed">{translateUI("Door closed")}</option><option value="open">{translateUI("Door open")}</option>
+                      {device.door_status === "opening" && <option value="opening">{translateUI("Opening")}</option>}{device.door_status === "closing" && <option value="closing">{translateUI("Closing")}</option>}
+                    </select>
+                  </Field>
+                  <button className="btn" onClick={async () => { try { await api.del(`/devices/${device.id}`); } catch (e) { toast("error", errMsg(e)); } }}>{translateUI("Remove simulated door")}</button></div>;
+              })() : <div className="col">
+                <input className="input" value={deviceId} placeholder={translateUI("Device ID")} onChange={(e) => setDeviceId(e.target.value)} />
+                <input className="input" value={deviceName} placeholder={translateUI("Device name")} onChange={(e) => setDeviceName(e.target.value)} />
+                <button className="btn" disabled={!deviceId || !deviceName || (item as Lane).layer !== "ground"} onClick={async () => {
+                  try {
+                    const lane = item as Lane;
+                    await api.post("/devices", { id: deviceId, name: deviceName, type: "door", map_id: map.id, entry: lane.from_id, exit: lane.to_id, lane_id: lane.id });
+                  } catch (e) { toast("error", errMsg(e)); }
+                }}>{translateUI("Add simulated door")}</button>
+              </div>}
+            </Field>
           </>
         )}
         {sel.kind === "zone" && (

@@ -13,10 +13,62 @@ import { Bar, Battery, ModeBadge, RobotTypeIcon, TaskBadge, vars } from "./ui";
 export function Inspector({ onFocus }: { onFocus?: (x: number, y: number) => void }) {
   const selected = useWorld((s) => s.selectedRobots);
   const selectedWaypoint = useWorld((s) => s.selectedWaypoint);
+  const selectedDevice = useWorld((s) => s.selectedDevice);
   if (selected.length === 1) return <RobotPanel robotId={selected[0]} onFocus={onFocus} />;
   if (selected.length > 1) return <MultiPanel ids={selected} />;
   if (selectedWaypoint) return <WaypointPanel id={selectedWaypoint} />;
+  if (selectedDevice) return <DoorPanel id={selectedDevice} />;
   return <Overview />;
+}
+
+function DoorPanel({ id }: { id: string }) {
+  const device = useWorld((s) => s.devices[id]);
+  const map = useWorld((s) => device ? s.maps[device.map_id] : undefined);
+  const robot = useWorld((s) => device?.holder ? s.robots[device.holder.robot_id] : undefined);
+  const selectDevice = useWorld((s) => s.selectDevice);
+  const connected = useWorld((s) => s.connected);
+  const act = useAct();
+  const [busy, setBusy] = useState(false);
+  if (!device) return null;
+  const statuses: Record<string, string> = { open: "Door open", closed: "Door closed", opening: "Opening", closing: "Closing", unknown: "Unknown" };
+  const states: Record<string, string> = { idle: "Idle", busy: "Busy", fault: "Fault", recovery_required: "Recovery Required" };
+  const phases: Record<string, string> = { reserved: "Reserved", open_entry: "Opening", open: "Door open", closing: "Closing", closed: "Door closed" };
+  const run = async (path: string, body: object) => {
+    setBusy(true);
+    try { await act(() => api.post(`/devices/${id}/${path}`, body)); } finally { setBusy(false); }
+  };
+  const locked = !connected || busy || Boolean(device.holder) || !device.simulated;
+  return <div>
+    <div className="insp-head">
+      <div className="row between"><div className="insp-title">{device.name}</div><button className="btn ghost icon sm" onClick={() => selectDevice(null)} aria-label={translateUI("Close")}><X size={14} /></button></div>
+      <div className="faint mono">{device.id} · {translateUI("Simulated door")}</div>
+    </div>
+    <div className="insp-sec">
+      <div className="section-title">{translateUI("Device information")}</div>
+      <div className="kv">
+        <span>{translateUI("Door position")}</span><span>{translateUI(statuses[device.door_status ?? "unknown"] ?? "Unknown")}</span>
+        <span>{translateUI("Device status")}</span><span>{translateUI(states[device.state] ?? device.state)}</span>
+        <span>{translateUI("Fault")}</span><span>{translateUI(device.fault ? "Fault active" : "No fault")}</span>
+        <span>{translateUI("Map")}</span><span>{map?.name ?? device.map_id}</span>
+        <span>{translateUI("Route")}</span><span className="mono">{device.lane_id ?? "—"}</span>
+        <span>{translateUI("Current phase")}</span><span>{device.phase ? translateUI(phases[device.phase] ?? device.phase) : "—"}</span>
+        <span>{translateUI("Occupying robot")}</span><span>{device.holder ? robot?.name ?? device.holder.robot_id : "—"}</span>
+        <span>{translateUI("Occupying task")}</span><span className="mono">{device.holder?.task_id ?? "—"}</span>
+      </div>
+    </div>
+    <div className="insp-sec">
+      <div className="section-title">{translateUI("Simulation controls")}</div>
+      <p className="faint">{translateUI("These controls set simulated feedback; they do not send commands to a real door.")}</p>
+      <div className="actions">
+        <button className="btn" disabled={locked || device.fault || device.door_status === "open"} onClick={() => void run("simulated-status", { status: "open" })}>{translateUI("Set simulated open")}</button>
+        <button className="btn" disabled={locked || device.fault || device.door_status === "closed"} onClick={() => void run("simulated-status", { status: "closed" })}>{translateUI("Set simulated closed")}</button>
+        <button className="btn" disabled={!connected || busy || !device.simulated} onClick={() => void run("fault", { fault: !device.fault })}>{translateUI(device.fault ? "Clear simulated fault" : "Simulate fault")}</button>
+        {device.state === "recovery_required" && <button className="btn" disabled={!connected || busy || !device.simulated} onClick={() => { if (window.confirm(translateUI("Confirm the simulated robot and door are safe before releasing the device?"))) void run("recover", {}); }}>{translateUI("Recover simulated device")}</button>}
+      </div>
+      {device.holder && <p className="faint">{translateUI("Door position cannot be changed while a task holds the device.")}</p>}
+      {!connected && <p className="faint">{translateUI("Live data disconnected · showing last known state")}</p>}
+    </div>
+  </div>;
 }
 
 function useAct() {
@@ -256,6 +308,7 @@ function MultiPanel({ ids }: { ids: string[] }) {
 }
 
 function WaypointPanel({ id }: { id: string }) {
+  const charger = useWorld((s) => Object.values(s.devices).find((d) => d.type === 'charger' && d.entry === id));
   const maps = useWorld((s) => s.maps);
   const activeMapId = useWorld((s) => s.activeMapId);
   const selectWaypoint = useWorld((s) => s.selectWaypoint);
@@ -263,6 +316,10 @@ function WaypointPanel({ id }: { id: string }) {
   const states = useWorld((s) => s.states);
   const openComposer = useWorld((s) => s.openComposer);
   const act = useAct();
+  const connected = useWorld((s) => s.connected);
+  const chargeTask = useWorld((s) => charger?.holder ? s.tasks[charger.holder.task_id] : undefined);
+  const [chargeRobot, setChargeRobot] = useState("");
+  const [chargeBusy, setChargeBusy] = useState(false);
   const map = activeMapId ? maps[activeMapId] : undefined;
   const w = map?.waypoints.find((x) => x.id === id);
   const candidates = useMemo(
@@ -275,6 +332,10 @@ function WaypointPanel({ id }: { id: string }) {
     [robots, states, map?.id, w],
   );
   if (!w || !map) return <Overview />;
+  const chargingRobots = Object.values(robots).filter((r) => r.enabled && r.effective.map_id === map.id && r.effective.layer === w.layer && r.effective.capabilities.includes('charge') && r.effective.communication.protocol === 'simulation' && states[r.id]?.online && !states[r.id]?.e_stop);
+  const selectedChargeRobot = chargingRobots.some((r) => r.id === chargeRobot) ? chargeRobot : "";
+  const canStartCharge = !!charger && !charger.fault && charger.state !== 'recovery_required' && (!charger.holder || (charger.phase === 'occupied' && charger.holder.robot_id === selectedChargeRobot));
+  const canCancelCharge = !!chargeTask && chargeTask.type === 'charge' && isOpen(chargeTask.status);
   const lanes = map.lanes.filter((l) => l.from_id === w.id || l.to_id === w.id);
   return (
     <div>
@@ -302,6 +363,25 @@ function WaypointPanel({ id }: { id: string }) {
         ))}
       </div>
       <div className="insp-sec">
+        {charger && <><div className="kv"><span>{translateUI("Simulated charger device")}</span><span>{charger.name} ({charger.id})</span><span>{translateUI("Device status")}</span><span>{translateUI(charger.fault ? 'Fault' : charger.state === 'recovery_required' ? 'Recovery Required' : charger.holder ? 'Busy' : 'Idle')}</span><span>{translateUI("Occupying robot")}</span><span>{charger.holder ? robots[charger.holder.robot_id]?.name ?? charger.holder.robot_id : '—'}</span><span>{translateUI("Occupying task")}</span><span>{charger.holder?.task_id ?? '—'}</span><span>{translateUI("Current phase")}</span><span>{translateUI(({ reserved: 'Reserved', docked: 'Docked', docking: 'Docking', undocking: 'Undocking', charging: 'Charging', occupied: 'Occupied' } as Record<string, string>)[charger.phase ?? ''] ?? '—')}</span></div>
+          <div className="section-title" style={{ marginTop: 12 }}>{translateUI("Charging controls")}</div>
+          <select className="input" aria-label={translateUI("Robot for charging")} value={selectedChargeRobot} disabled={!connected || chargeBusy} onChange={(e) => setChargeRobot(e.target.value)}>
+            <option value="">{translateUI("Choose a robot to charge…")}</option>
+            {chargingRobots.map((r) => <option key={r.id} value={r.id}>{r.name} ({r.id})</option>)}
+          </select>
+          <div className="actions">
+            <button className="btn primary" disabled={!connected || chargeBusy || !selectedChargeRobot || !canStartCharge} onClick={async () => {
+              setChargeBusy(true);
+              try { await act(() => api.post('/tasks', { type: 'charge', map_id: map.id, params: { charger: w.id }, requirements: { robot_id: selectedChargeRobot } }), translateUI('Charging task submitted')); } finally { setChargeBusy(false); }
+            }}>{translateUI("Start charging")}</button>
+            <button className="btn" disabled={!connected || chargeBusy || !canCancelCharge} onClick={async () => {
+              if (!chargeTask) return;
+              setChargeBusy(true);
+              try { await act(() => api.post(`/tasks/${chargeTask.id}/cancel`, {}), translateUI('Charging task cancelled')); } finally { setChargeBusy(false); }
+            }}>{translateUI("Cancel charging")}</button>
+          </div>
+          <p className="faint">{translateUI("Cancelling stops the task; an occupied charger may require recovery before reuse.")}</p>
+          <div className="actions"><button className="btn" disabled={!connected} onClick={() => act(() => api.post(`/devices/${charger.id}/fault`, { fault: !charger.fault }))}>{translateUI(charger.fault ? 'Clear simulated fault' : 'Simulate fault')}</button>{charger.state === 'recovery_required' && <button className="btn" disabled={!connected} onClick={() => { if (window.confirm(translateUI('Confirm the simulated charger and robot are safe before releasing the device?'))) void act(() => api.post(`/devices/${charger.id}/recover`, {})); }}>{translateUI('Recover simulated device')}</button>}</div></>}
         <div className="kv">
           <span>{translateUI("Position")}</span><span className="mono num">{w.x.toFixed(2)}, {w.y.toFixed(2)}{w.z ? `, z ${w.z}` : ""}</span>
           <span>{translateUI("Heading")}</span><span className="num">{((w.yaw * 180) / Math.PI).toFixed(0)}°</span>
