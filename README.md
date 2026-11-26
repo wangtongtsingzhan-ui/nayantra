@@ -1,5 +1,9 @@
 # 🤖 Nayantra — Agentic Operations Platform for Heterogeneous Robot Fleets
 
+[中文说明](README.zh-CN.md) | English
+
+Project repository: [Gitee](https://gitee.com/qingzhan-zhizao/tsingbotnayantra). Based on the open-source [Nayantra upstream](https://github.com/shashankbr27/nayantra).
+
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-green.svg)](https://www.python.org/)
 [![ROS 2 Humble | Jazzy](https://img.shields.io/badge/ROS%202-Humble%20%7C%20Jazzy-orange.svg)](https://docs.ros.org/)
@@ -50,7 +54,7 @@ core decides.**
  │        │                         Agent API (:8080)  Claude·GPT·Gemini  │
  │        │                         think → act → observe                 │
  │        │                                    │ tool calls               │
- │        │                         MCP server (:7000)                    │
+ │        │                         REST tool server (:7000)              │
  │        │                         schema-validated, risk-tagged tools;  │
  │        │                         cannot confirm dangerous actions      │
  └────────┼────────────────────────────────────┼─────────────────────────┘
@@ -112,6 +116,8 @@ Deep dives:
 | 🚦 **Traffic** | Prioritized space-time (SIPP) planning over a reservation table. An execution order graph keeps robots deadlock-free when they are delayed. Conflicts are classified (head-on, intersection, bottleneck, …) and resolved by delay, reroute, priority, make-way or joint re-planning. Airspace is split into altitude layers for UAVs. |
 | 🛡 **Safety** | Forbidden-zone enforcement, speed caps and a forward stop zone in the simulator. Emergency stop works per robot, per fleet or for everything. Dangerous commands need operator confirmation, which the MCP/LLM path can never give. |
 | 🖥 **Operator UI** | Mission-control dashboard: an interactive map (zoom, pan, layers, selection, live robot poses), fleet overview, robot command center, task composer and drawer, traffic and conflict view, alerts and events, map/graph editor, and Start/Pause/Stop for simulated fleets. Dark and light themes. |
+| 🌐 **Languages** | The UI defaults to Chinese and can be switched to English. Unrecognized backend or vendor messages remain in their original language. |
+| 🚪 **Simulated devices** | Simulated doors and charging devices can be bound to routes or charging waypoints. Other simulated devices are available through device tasks; see [device simulation](docs/device-simulation.md) for behavior and limitations. These do not control physical equipment. |
 | 🧠 **Natural language** | Provider-agnostic agent (Anthropic / OpenAI / Gemini) that uses about 25 high-level tools. It creates tasks and never drives robots directly. Commands are traced end to end (mission → command → tool → task). |
 | 🔌 **Adapters** | One adapter interface. Implementations: Nav2 over ROS 2 (Humble and Jazzy) and the Isaac demo over HTTP. Protocols that aren't implemented are registered but fail their connection test with an explicit reason. |
 | 🔁 **Compatibility** | The old rmf-web-shaped routes (`/fleets`, `/tasks/dispatch_task`, `/building_map` …) are still served, backed by the core. `python -m nayantra.rmf_bridge.server` still starts a single-robot setup. |
@@ -121,9 +127,11 @@ Deep dives:
 - The orchestration chain (register robot → fleet → map → task → allocation →
   traffic → navigation → completion) is exercised end to end by the test
   suite, through the REST API and through the NL agent with a scripted LLM.
-- The **Nav2 adapter** has not yet been run against a live Nav2 stack.
+- The Nav2 adapter has been exercised with Gazebo and ROS 2 Jazzy; live
+  Isaac Sim, ROS 2 Humble and physical robot integration require further validation.
 - **Multi-robot Isaac Sim** is not wired up. The Isaac demo adapter drives
   the single carter_v1 demo robot.
+- Built-in simulation is kinematic and does not validate physical behavior or safety.
 
 ---
 
@@ -148,20 +156,23 @@ robots. The connection test reports which distro it found.
 ### 1. Install
 
 ```bash
-git clone https://github.com/shashankbr27/nayantra.git
+git clone https://gitee.com/qingzhan-zhizao/tsingbotnayantra.git nayantra
 cd nayantra
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e ".[test]"
-cp config/.env.example config/.env   # add ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY for NL
+cp -n config/.env.example .env       # add a provider API key only if using NL
 ```
 
 ### 2. Build the UI and start the core
 
 ```bash
 (cd web && npm ci && npm run build)          # once; the core serves web/dist
-nayantra-core --scenario isaac_carter        # → http://localhost:8000/
+nayantra-core --scenario warehouse_demo       # → http://localhost:8000/
 ```
 
-The `isaac_carter` scenario (`config/scenarios/isaac_carter.json`) registers
+The `warehouse_demo` scenario uses the built-in simulator. The optional
+`isaac_carter` scenario (`config/scenarios/isaac_carter.json`) registers
 the carter_v1 robot of the Isaac Sim warehouse, driven through Nav2. Bring
 the robot side up as in [Isaac Sim Setup](#-isaac-sim-setup) below; the
 robot shows as online in the UI once its ROS 2 topics are discovered.
@@ -185,10 +196,16 @@ bash scripts/start.sh        # Windows: scripts\start.ps1
 |---|---|
 | Operator UI | http://localhost:8000/ |
 | Core API (OpenAPI) | http://localhost:8000/docs |
-| MCP server | http://localhost:7000/tools |
+| REST tool server | http://localhost:7000/tools |
 | Agent API | http://localhost:8080/docs |
 
 Or use Docker: `docker compose -f docker/docker-compose.yml up --build`.
+
+The start script requires `.venv` and the root `.env`. It binds the Agent API
+to `0.0.0.0:8080`; review network exposure and authentication before using it
+on a shared network. Logs are in `runtime/logs/`; stop with `bash scripts/stop.sh`.
+For OpenAI-compatible providers, configure `OPENAI_BASE_URL`, `OPENAI_MODEL`
+and `OPENAI_API_MODE` (`chat` or `responses`) in `.env` and restart the agent.
 
 To connect Codex, install the project dependencies, start Nayantra Core, then
 register the stdio server (replace the path if your checkout is elsewhere):
@@ -213,7 +230,7 @@ In the UI:
 
 1. Pick a waypoint on the map and create a navigate or delivery task.
 2. Read the allocation explanation.
-3. Watch the robot execute it on the live map (and in the Isaac Sim stream).
+3. Watch the simulated robot execute it on the live map.
 
 From the CLI:
 
@@ -266,7 +283,7 @@ nayantra/
 │   ├── .env.example
 │   └── tools.json          # Generated tool definitions
 ├── docker/                 # Dockerfile.core · .mcp · .agent · compose
-├── tests/                  # Pytest suite (315 tests; tests/core = platform)
+├── tests/                  # Pytest suite (tests/core = platform)
 ├── docs/
 ├── scripts/
 └── pyproject.toml
@@ -387,17 +404,18 @@ For LAN deployments, set `ZENOH_ENABLED=false` and ROS 2 DDS handles discovery n
 Tokens are signed HS256 JWTs. To enable:
 
 ```bash
-# 1. Generate a strong secret in config/.env
+# 1. Generate a strong secret in the root .env
 JWT_SECRET=$(python -c "import secrets; print(secrets.token_urlsafe(48))")
-echo "JWT_SECRET=$JWT_SECRET" >> config/.env
-echo "USE_AUTH=true"          >> config/.env
+echo "JWT_SECRET=$JWT_SECRET" >> .env
+echo "USE_AUTH=true"          >> .env
 
 # 2. Issue a token
 nayantra-token --subject admin --hours 240
 ```
 
 > The agent **refuses to start** with `USE_AUTH=true` and an empty `JWT_SECRET`.
-> By default servers bind to `127.0.0.1`; override `MCP_SERVER_HOST` / `AGENT_API_HOST` to expose them.
+> Direct server defaults bind to `127.0.0.1`. The full-stack `scripts/start.sh`
+> explicitly binds the Agent API to `0.0.0.0`, regardless of `AGENT_API_HOST`.
 
 ---
 

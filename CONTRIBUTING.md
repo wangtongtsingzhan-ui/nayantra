@@ -21,7 +21,7 @@ Nayantra is designed so the whole stack runs on a laptop with no GPU, no real
 robot, and no Open-RMF server (the test suite uses an in-process robot fixture).
 
 ```bash
-git clone https://github.com/shashankbr27/nayantra.git
+git clone https://gitee.com/qingzhan-zhizao/tsingbotnayantra.git nayantra
 cd nayantra
 
 python -m venv .venv
